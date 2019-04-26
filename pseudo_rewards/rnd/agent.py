@@ -4,6 +4,7 @@ from rainy.prelude import Array, State
 import torch
 from torch import nn, Tensor
 from typing import Tuple
+from .rollout import RndRolloutSampler
 
 
 class RndPpoAgent(PpoAgent):
@@ -38,17 +39,17 @@ class RndPpoAgent(PpoAgent):
         with torch.no_grad():
             next_value = self.net.value(*self._network_in(states))
 
-        if self.config.use_gae:
-            gamma, tau = self.config.discount_factor, self.config.gae_tau
-            self.storage.calc_gae_returns(next_value, gamma, tau)
-        else:
-            self.storage.calc_ac_returns(next_value, self.config.discount_factor)
+        gamma, tau = self.config.discount_factor, self.config.gae_tau
+        self.storage.calc_gae_returns(next_value, gamma, tau)
+
         p, v, e = (0.0, 0.0, 0.0)
         for _ in range(self.config.ppo_epochs):
-            sampler = RolloutSampler(
+            sampler = RndRolloutSampler(
                 self.storage,
                 self.penv,
                 self.config.ppo_minibatch_size,
+                self.config.ext_adv_coeff,
+                self.config.int_adv_coeff,
                 rnn=self.net.recurrent_body,
                 adv_normalize_eps=self.config.adv_normalize_eps,
             )

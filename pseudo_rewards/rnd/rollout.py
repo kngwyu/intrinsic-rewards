@@ -2,6 +2,7 @@ from rainy.envs import ParallelEnv
 from rainy.lib import RolloutSampler, RolloutStorage
 from rainy.net import DummyRnn, RnnBlock, RnnState
 from rainy.prelude import Array, State
+from rainy.utils.misc import normalize_
 from rainy.utils import Device
 import torch
 from torch import Tensor
@@ -23,22 +24,10 @@ class RndRolloutStorage(RolloutStorage[State]):
     def batch_pseudo_values(self) -> Tensor:
         return torch.cat(self.values[:self.nsteps])
 
-    def batch_pseudo_rewards(self) -> Tensor:
-        return self.device.tensor(self.pseudo_rewards).flatten()
-
     def batch_pseudo_returns(self) -> Tensor:
         return self.pseudo_returns[:self.nsteps].flatten()
 
-    def calc_ac_pseudo_returns(self, next_value: Tensor, gamma: float, use_mask: bool) -> None:
-        self.pseudo_returns[-1] = next_value
-        self.pseudo_values.append(next_value)
-        rewards = self.device.tensor(self.pseudo_rewards)
-        masks = self.masks if use_mask else self.device.ones(self.nsteps + 1)
-
-        for i in reversed(range(self.nsteps)):
-            self.returns[i] = self.returns[i + 1] * gamma * masks[i + 1] + rewards[i]
-
-    def calc_gae_pseudo_returns(
+    def calc_pseudo_returns(
             self,
             next_value: Tensor,
             gamma: float,
@@ -64,9 +53,9 @@ class RndRolloutBatch(NamedTuple):
     returns: Tensor
     values: Tensor
     old_log_probs: Tensor
-    advantages: Tensor
     pseudo_values: Tensor
     pseudo_returns: Tensor
+    advantages: Tensor
     rnn_init: RnnState
 
 
@@ -76,10 +65,29 @@ class RndRolloutSampler(RolloutSampler):
             storage: RndRolloutStorage,
             penv: ParallelEnv,
             minibatch_size: int,
+            ext_coeff: float,
+            int_coeff: float,
             rnn: RnnBlock = DummyRnn(),
-            adv_normalize_eps: Optional[float] = None,
+            adv_normalize_eps: Optional[float] = None
     ) -> None:
-        super().__init__(storage, penv, minibatch_size, rnn, adv_normalize_eps)
+        super().__init__(storage, penv, minibatch_size, rnn, None)
         self.pseudo_returns = storage.batch_pseudo_returns()
-        self.pseudo_rewards = storage.batch_pseudo_rewards()
         self.pseudo_values = storage.batch_pseudo_values()
+        pseudo_advs = self.pseudo_returns - self.pseudo_values
+        self.advantages.mul_(ext_coeff).add_(pseudo_advs * int_coeff)
+        if adv_normalize_eps is not None:
+            normalize_(self.advantages, adv_normalize_eps)
+
+    def _make_batch(self, i: Array[int]) -> RndRolloutBatch:
+        return RndRolloutBatch(
+            self.states[i],
+            self.actions[i],
+            self.masks[i],
+            self.returns[i],
+            self.values[i],
+            self.old_log_probs[i],
+            self.pseudo_values[i],
+            self.pseudo_returns[i],
+            self.advantages[i],
+            self.rnn_init[i[:len(i) // self.nsteps]]
+        )
