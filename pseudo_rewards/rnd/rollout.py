@@ -1,20 +1,43 @@
+import copy
 from rainy.envs import ParallelEnv
 from rainy.lib import RolloutSampler, RolloutStorage
 from rainy.net import DummyRnn, RnnBlock, RnnState
 from rainy.prelude import Array, State
-from rainy.utils.misc import normalize_
-from rainy.utils import Device
+from rainy.utils import Device, normalize_, RunningMeanStdTorch
 import torch
 from torch import Tensor
 from typing import List, NamedTuple, Optional
 
 
+class RewardForwardFilter:
+    def __init__(self, gamma: float, nworkers: int, device: Device) -> None:
+        self.gamma = gamma
+        self.nonepisodic_return = device.zeros(nworkers)
+
+    def update(self, prew: Tensor) -> Tensor:
+        self.nonepisodic_return.div_(self.gamma).add_(prew)
+        return copy.deepcopy(self.nonepisodic_return)
+
+
 class RndRolloutStorage(RolloutStorage[State]):
-    def __init__(self, nsteps: int, nworkers: int, device: Device) -> None:
-        super().__init__(nsteps, nworkers, device)
-        self.pseudo_rewards: List[Array[float]] = []
+    def __init__(
+            self,
+            ros: RolloutStorage[State],
+            nsteps: int,
+            nworkers: int,
+            gamma: float,
+            rnd_device: Device
+    ) -> None:
+        self = ros
+        self.rff = RewardForwardFilter(gamma, nworkers, rnd_device)
+        self.rff_rms = RunningMeanStdTorch(shape=(), device=rnd_device)
+        self.pseudo_rewards: List[Array] = []
         self.pseudo_values: List[Tensor] = []
         self.pseudo_returns = self.device.zeros((nsteps + 1, nworkers))
+
+    def push_pseudo_rewards(self, prew: Tensor, pval: Tensor) -> None:
+        self.pseudo_rewards.append(self.rff.update(prew))
+        self.pseudo_values.append(pval)
 
     def reset(self) -> None:
         super().reset()
@@ -27,22 +50,29 @@ class RndRolloutStorage(RolloutStorage[State]):
     def batch_pseudo_returns(self) -> Tensor:
         return self.pseudo_returns[:self.nsteps].flatten()
 
+    def normalize_pseudo_rewards(self) -> Tensor:
+        rewards = self.device.tensor(self.pseudo_rewards)
+        self.rff_rms.update(rewards.view(-1))
+        return rewards.div_(self.rff_rms.var.sqrt())
+
     def calc_pseudo_returns(
             self,
             next_value: Tensor,
             gamma: float,
-            tau: float,
+            lambda_: float,
             use_mask: bool
     ) -> None:
+        """Calcurates the GAE return of pseudo rewards
+        """
         self.pseudo_returns[-1] = next_value
         self.pseudo_values.append(next_value)
-        rewards = self.device.tensor(self.pseudo_rewards)
+        rewards = self.normalize_pseudo_rewards()
         masks = self.masks if use_mask else self.device.ones(self.nsteps + 1)
         gae = self.device.zeros(self.nworkers)
         for i in reversed(range(self.nsteps)):
             td_error = rewards[i] + \
                 gamma * self.pseudo_values[i + 1] * masks[i + 1] - self.pseudo_values[i]
-            gae = td_error + gamma * tau * masks[i] * gae
+            gae = td_error + gamma * lambda_ * masks[i] * gae
             self.pseudo_returns[i] = gae + self.pseudo_values[i]
 
 
