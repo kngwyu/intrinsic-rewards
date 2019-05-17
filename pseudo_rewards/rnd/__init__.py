@@ -1,6 +1,8 @@
 from rainy import Config
-
+from .agent import RndPpoAgent
 from .prew import prew_gen_deafult
+
+from . import net
 
 
 def default_config() -> Config:

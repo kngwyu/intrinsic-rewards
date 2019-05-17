@@ -1,6 +1,6 @@
 import copy
 from rainy.envs import ParallelEnv
-from rainy.lib import RolloutSampler, RolloutStorage
+from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.net import DummyRnn, RnnBlock, RnnState
 from rainy.prelude import Array, State
 from rainy.utils import Device, normalize_, RunningMeanStdTorch

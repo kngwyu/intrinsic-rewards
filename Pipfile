@@ -3,5 +3,10 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[packages]
-rainy = { version = '== 0.1.0', extras = ['ipython'] }
+[packages.pseudo_rewards]
+editable = true
+path = '.'
+
+[packages.rainy]
+editable = true
+git = 'https://github.com/kngwyu/Rainy.git'

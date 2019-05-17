@@ -1,6 +1,6 @@
 from itertools import chain
 from rainy import Config
-from rainy.net import PpoAgent
+from rainy.agents import PpoAgent
 from rainy.prelude import Array, State
 import torch.optim
 from torch import nn

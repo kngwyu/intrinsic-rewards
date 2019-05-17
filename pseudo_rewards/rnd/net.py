@@ -1,8 +1,8 @@
 import copy
 from rainy.net.actor_critic import policy_init
-from rainy.net import CategoricalHead, DummyRnn, DqnConv, \
-    LinearHead, RnnBlock, RnnState, Policy, PolicyHead, SharedBodyACNet
-from rainy.prelude import Array, NetFn
+from rainy.net.policy import CategoricalHead, Policy, PolicyHead
+from rainy.net import DummyRnn, DqnConv, LinearHead, RnnBlock, RnnState, SharedBodyACNet
+from rainy.prelude import Array
 from rainy.utils import Device
 from torch import Tensor
 from typing import Callable, Optional, Tuple, Union
@@ -42,11 +42,8 @@ def rnd_ac_conv(
         output_dim: int = 256,
         rnn: Callable[[int, int], RnnBlock] = DummyRnn,
         **kwargs
-) -> NetFn:
-    """Convolutuion network used for atari experiments
-       in A3C paper(https://arxiv.org/abs/1602.01783)
-    """
-    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> SharedBodyACNet:
+) -> Callable[[Tuple[int, int, int], int, Device], RndACNet]:
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> RndACNet:
         body = DqnConv(state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs)
         policy_head = policy(action_dim, device)
         rnn_ = rnn(body.output_dim, body.output_dim)

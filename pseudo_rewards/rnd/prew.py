@@ -2,7 +2,7 @@ import copy
 import torch
 from torch import nn, Tensor
 from typing import Callable, List, Sequence, Tuple
-from rainy.net import Activator, Initializer, make_cnns, NetworkBlock
+from rainy.net import Initializer, make_cnns, NetworkBlock
 from rainy.net.prelude import Params
 from rainy.prelude import Array
 from rainy.utils import Device
@@ -41,7 +41,7 @@ class RndConvBody(NetworkBlock):
             fcs: List[nn.Module],
             input_dim: Tuple[int, int, int],
             activ1: nn.Module = nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            activ2: Activator = nn.ReLU(inplace=True),
+            activ2: nn.Module = nn.ReLU(inplace=True),
             init: Initializer = Initializer(nonlinearity='relu'),
     ) -> None:
         super().__init__()
