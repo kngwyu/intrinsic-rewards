@@ -10,3 +10,6 @@ path = '.'
 [packages.rainy]
 editable = true
 git = 'https://github.com/kngwyu/Rainy.git'
+
+[dev-packages]
+pytest = "==3.10.1"

@@ -1,4 +1,3 @@
-import copy
 import torch
 from torch import nn, Tensor
 from typing import Callable, List, Sequence, Tuple
@@ -10,8 +9,8 @@ from rainy.utils import Device
 
 class PseudoRewardGenerator:
     def __init__(self, target: NetworkBlock, predictor: NetworkBlock, device: Device) -> None:
-        device.to(target)
-        device.to(predictor)
+        target.to(device.unwrapped)
+        predictor.to(device.unwrapped)
         self.target = target
         self.predictor = predictor
         self.device = device
@@ -45,8 +44,8 @@ class RndConvBody(NetworkBlock):
             init: Initializer = Initializer(nonlinearity='relu'),
     ) -> None:
         super().__init__()
-        self.conv = init.make_list(cnns)
-        self.fc = init.make_list(fcs)
+        self.cnns = init.make_list(cnns)
+        self.fcs = init.make_list(fcs)
         self._input_dim = input_dim
         self.init = init
         self.activ1 = activ1
@@ -58,14 +57,14 @@ class RndConvBody(NetworkBlock):
 
     @property
     def output_dim(self) -> int:
-        return self.fc.out_features
+        return self.fcs[-1].out_features
 
     def forward(self, x: Tensor) -> Tensor:
-        for conv in self.cnns:
-            x = self.activ1(conv(x), inplace=True)
+        for cnn in self.cnns:
+            x = self.activ1(cnn(x))
         x = x.view(x.size(0), -1)
         for fc in self.fcs[:-1]:
-            x = self.activ2(fc(x), inplace=True)
+            x = self.activ2(fc(x))
         return self.fcs[-1](x)
 
 
@@ -82,6 +81,7 @@ def prew_gen_deafult(
             nn.Linear(output_dim, output_dim),
             nn.Linear(output_dim, output_dim)
         ]
-        predictor = RndConvBody(copy.deepcopy(cnns), predictor_fc, input_dim)
+        cnns, _ = make_cnns(input_dim, params, channels)
+        predictor = RndConvBody(cnns, predictor_fc, input_dim)
         return PseudoRewardGenerator(target, predictor, device)
     return _make_prew_gen

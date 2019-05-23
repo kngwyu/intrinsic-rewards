@@ -1,4 +1,3 @@
-import copy
 from rainy.envs import ParallelEnv
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.net import DummyRnn, RnnBlock, RnnState
@@ -16,7 +15,7 @@ class RewardForwardFilter:
 
     def update(self, prew: Tensor) -> Tensor:
         self.nonepisodic_return.div_(self.gamma).add_(prew)
-        return copy.deepcopy(self.nonepisodic_return)
+        return self.nonepisodic_return.clone().detach()
 
 
 class RndRolloutStorage(RolloutStorage[State]):
@@ -26,18 +25,20 @@ class RndRolloutStorage(RolloutStorage[State]):
             nsteps: int,
             nworkers: int,
             gamma: float,
-            rnd_device: Device
+            rnd_device: Device = Device(use_cpu=True)
     ) -> None:
-        self = ros
+        self.__dict__.update(ros.__dict__)
         self.rff = RewardForwardFilter(gamma, nworkers, rnd_device)
         self.rff_rms = RunningMeanStdTorch(shape=(), device=rnd_device)
-        self.pseudo_rewards: List[Array] = []
+        self.pseudo_rewards: List[Tensor] = []
         self.pseudo_values: List[Tensor] = []
-        self.pseudo_returns = self.device.zeros((nsteps + 1, nworkers))
+        self.pseudo_gae = rnd_device.zeros((nsteps + 1, nworkers))
+        self.pseudo_returns = rnd_device.zeros((nsteps, nworkers))
+        self.rnd_device = rnd_device
 
     def push_pseudo_rewards(self, prew: Tensor, pval: Tensor) -> None:
-        self.pseudo_rewards.append(self.rff.update(prew))
-        self.pseudo_values.append(pval)
+        self.pseudo_rewards.append(self.rff.update(self.rnd_device.tensor(prew)))
+        self.pseudo_values.append(self.rnd_device.tensor(pval))
 
     def reset(self) -> None:
         super().reset()
@@ -47,12 +48,9 @@ class RndRolloutStorage(RolloutStorage[State]):
     def batch_pseudo_values(self) -> Tensor:
         return torch.cat(self.values[:self.nsteps])
 
-    def batch_pseudo_returns(self) -> Tensor:
-        return self.pseudo_returns[:self.nsteps].flatten()
-
     def normalize_pseudo_rewards(self) -> Tensor:
-        rewards = self.device.tensor(self.pseudo_rewards)
-        self.rff_rms.update(rewards.view(-1))
+        rewards = torch.cat(self.pseudo_rewards)
+        self.rff_rms.update(rewards)
         return rewards.div_(self.rff_rms.var.sqrt())
 
     def calc_pseudo_returns(
@@ -60,20 +58,19 @@ class RndRolloutStorage(RolloutStorage[State]):
             next_value: Tensor,
             gamma: float,
             lambda_: float,
-            use_mask: bool
+            use_mask: bool = False,
     ) -> None:
         """Calcurates the GAE return of pseudo rewards
         """
-        self.pseudo_returns[-1] = next_value
-        self.pseudo_values.append(next_value)
+        self.pseudo_values.append(self.rnd_device.tensor(next_value))
         rewards = self.normalize_pseudo_rewards()
-        masks = self.masks if use_mask else self.device.ones(self.nsteps + 1)
-        gae = self.device.zeros(self.nworkers)
+        masks = self.masks if use_mask else self.rnd_device.ones(self.nsteps + 1)
+        self.pseudo_gae.fill_(0.0)
         for i in reversed(range(self.nsteps)):
             td_error = rewards[i] + \
                 gamma * self.pseudo_values[i + 1] * masks[i + 1] - self.pseudo_values[i]
-            gae = td_error + gamma * lambda_ * masks[i] * gae
-            self.pseudo_returns[i] = gae + self.pseudo_values[i]
+            self.pseudo_gae[i] = td_error + gamma * lambda_ * masks[i] * self.pseudo_gae[i + 1]
+            self.pseudo_returns[i] = self.pseudo_gae[i] + self.pseudo_values[i]
 
 
 class RndRolloutBatch(NamedTuple):
@@ -101,9 +98,9 @@ class RndRolloutSampler(RolloutSampler):
             adv_normalize_eps: Optional[float] = None
     ) -> None:
         super().__init__(storage, penv, minibatch_size, rnn, None)
-        self.pseudo_returns = storage.batch_pseudo_returns()
+        self.pseudo_returns = storage.pseudo_returns.flatten()
         self.pseudo_values = storage.batch_pseudo_values()
-        pseudo_advs = self.pseudo_returns - self.pseudo_values
+        pseudo_advs = storage.pseudo_gae[:-1].flatten().to(self.advantages.device)
         self.advantages.mul_(ext_coeff).add_(pseudo_advs * int_coeff)
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)

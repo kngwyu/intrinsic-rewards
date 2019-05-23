@@ -20,7 +20,6 @@ setup(
     description='A collection of DRL algorithms with pseudo rewards',
     packages=find_packages(),
     python_requires='>=3.6',
-    install_requires=['rainy'],
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
         'Development Status :: 3 - Alpha',

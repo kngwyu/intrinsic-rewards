@@ -39,15 +39,14 @@ class RndACNet(SharedBodyACNet):
 def rnd_ac_conv(
         policy: Callable[[int, Device], PolicyHead] = CategoricalHead,
         hidden_channels: Tuple[int, int, int] = (32, 64, 32),
-        output_dim: int = 256,
-        rnn: Callable[[int, int], RnnBlock] = DummyRnn,
+        output_dim: int = 256, rnn: Callable[[int, int], RnnBlock] = DummyRnn,
         **kwargs
 ) -> Callable[[Tuple[int, int, int], int, Device], RndACNet]:
     def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> RndACNet:
         body = DqnConv(state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs)
         policy_head = policy(action_dim, device)
         rnn_ = rnn(body.output_dim, body.output_dim)
-        ac_head = LinearHead(body.output_dim, policy_head.input_dim, policy_init)
+        ac_head = LinearHead(body.output_dim, policy_head.input_dim, policy_init())
         cr_head = LinearHead(body.output_dim, 1)
         return RndACNet(body, ac_head, cr_head, policy_head, recurrent_body=rnn_, device=device)
     return _net  # type: ignore
