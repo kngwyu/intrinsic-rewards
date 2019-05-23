@@ -7,8 +7,8 @@ from . import net
 
 def default_config() -> Config:
     config = Config()
-    setattr(config, 'adv_weight', 1.0)
-    setattr(config, 'pseudo_adv_weight', 0.0)
+    setattr(config, 'adv_weight', 2.0)
+    setattr(config, 'pseudo_adv_weight', 1.0)
     setattr(config, 'pseudo_discount_factor', 0.0)
     setattr(config, 'pret_use_mask', False)
     setattr(config, 'pseudo_value_loss_weight', 0.0)

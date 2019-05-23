@@ -5,28 +5,40 @@ from rainy.net import Initializer, make_cnns, NetworkBlock
 from rainy.net.prelude import Params
 from rainy.prelude import Array
 from rainy.utils import Device
+from rainy.utils.rms import RunningMeanStdTorch
 
 
 class PseudoRewardGenerator:
-    def __init__(self, target: NetworkBlock, predictor: NetworkBlock, device: Device) -> None:
+    def __init__(
+            self,
+            target: NetworkBlock,
+            predictor: NetworkBlock,
+            device: Device,
+    ) -> None:
         target.to(device.unwrapped)
         predictor.to(device.unwrapped)
         self.target = target
         self.predictor = predictor
         self.device = device
+        self.ob_rms = RunningMeanStdTorch(target.input_dim, device)
 
     def pseudo_reward(self, state: Array[float]) -> Tensor:
-        s = self.device.tensor(state)
+        s = self.device.tensor(state).mul_(255.0)
+        self.ob_rms.update(s.double())
         with torch.no_grad():
-            target = self.target(s)
-            prediction = self.predictor(s)
+            normalized_s = torch.clamp((s - self.ob_rms.mean.float())
+                                       / self.ob_rms.std().float(), -5.0, 5.0)
+            target = self.target(normalized_s)
+            prediction = self.predictor(normalized_s)
         return (target - prediction).pow(2).sum(dim=-1)
 
     def aux_loss(self, state: Tensor) -> Tensor:
-        s = self.device.tensor(state)
+        s = self.device.tensor(state).mul_(255.0)
+        normalized_s = torch.clamp((s - self.ob_rms.mean.float())
+                                   / self.ob_rms.std().float(), -5.0, 5.0)
         with torch.no_grad():
-            target = self.target(s)
-        prediction = self.predictor(s)
+            target = self.target(normalized_s)
+        prediction = self.predictor(normalized_s)
         return (target - prediction).pow(2).mean()
 
     def params(self) -> Params:
