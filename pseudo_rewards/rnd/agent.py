@@ -65,16 +65,16 @@ class RndPpoAgent(PpoAgent):
         )
 
         p, v, pv, e = (0.0,) * 4
+        sampler = RndRolloutSampler(
+            self.storage,
+            self.penv,
+            conf.ppo_minibatch_size,
+            conf.adv_weight,
+            conf.pseudo_adv_weight,
+            rnn=self.net.recurrent_body,
+            adv_normalize_eps=self.config.adv_normalize_eps,
+        )
         for _ in range(self.config.ppo_epochs):
-            sampler = RndRolloutSampler(
-                self.storage,
-                self.penv,
-                conf.ppo_minibatch_size,
-                conf.adv_weight,
-                conf.pseudo_adv_weight,
-                rnn=self.net.recurrent_body,
-                adv_normalize_eps=self.config.adv_normalize_eps,
-            )
             for batch in sampler:
                 policy, value, pseudo_value, _ = \
                     self.net(batch.states, batch.rnn_init, batch.masks)
