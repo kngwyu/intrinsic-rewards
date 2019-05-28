@@ -3,17 +3,17 @@ import re
 from setuptools import setup, find_packages
 
 
-with io.open('pseudo_rewards/__init__.py', 'rt', encoding='utf8') as f:
+with io.open('int_rew/__init__.py', 'rt', encoding='utf8') as f:
     version = re.search(r"__version__ = \'(.*?)\'", f.read()).group(1)
 
 
 setup(
-    name='pseudo_rewards',
+    name='intrisic_rewards',
     version=version,
-    url='https://github.com/kngwyu/pseudo_rewards',
+    url='https://github.com/kngwyu/intrinsic_rewards',
     project_urls={
-        'Code': 'https://github.com/kngwyu/pseudo_rewards',
-        'Issue tracker': 'https://github.com/kngwyu/pseudo_rewards/issues',
+        'Code': 'https://github.com/kngwyu/intrinsic_rewards',
+        'Issue tracker': 'https://github.com/kngwyu/intrinsic_rewards/issues',
     },
     author='Yuji Kanagawa',
     author_email='yuji.kngw.80s.revive@gmail.com',

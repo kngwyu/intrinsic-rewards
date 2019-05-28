@@ -5,7 +5,7 @@ from rainy.net.policy import CategoricalHead
 from rainy.utils import Device
 import torch
 
-from pseudo_rewards import rnd
+from int_rew import rnd
 
 
 def test_storage() -> None:

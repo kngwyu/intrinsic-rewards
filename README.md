@@ -1,8 +1,8 @@
 # Pseudo-Rewards
-A collection of reinforcement learning algorithms with pseudo rewards, based on [Rainy](https://github.com/kngwyu/Rainy) and PyTorch.
+A collection of deep reinforcement learning algorithms with intrinsic rewards,
+based on [Rainy](https://github.com/kngwyu/Rainy) and PyTorch.
 
 ## Implemented Algorithms
-
 
 ## How to use
 First, install [pipenv](https://pipenv.readthedocs.io/en/latest/).

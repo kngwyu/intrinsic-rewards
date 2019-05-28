@@ -3,7 +3,7 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[packages.pseudo_rewards]
+[packages.intrinsic_rewards]
 editable = true
 path = '.'
 
