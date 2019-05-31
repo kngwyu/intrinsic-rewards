@@ -20,8 +20,8 @@ class RndPpoAgent(PpoAgent):
             config.nworkers,
             config.discount_factor,
         )
-        self.prew_gen = config.pseudo_reward_gen(self.penv.state_dim, rnd_device)
-        self.optimizer = config.optimizer(chain(self.net.parameters(), self.prew_gen.params()))
+        self.irew_gen = config.int_reward_gen(self.penv.state_dim, rnd_device)
+        self.optimizer = config.optimizer(chain(self.net.parameters(), self.irew_gen.params()))
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
@@ -40,8 +40,7 @@ class RndPpoAgent(PpoAgent):
         self.rewards += rewards
         self.report_reward(done, info)
         self.storage.push(next_states, rewards, done, rnn_state=rnns, policy=policy, value=value)
-        prew = self.prew_gen.pseudo_reward(net_in[0])
-        self.storage.push_pseudo_rewards(prew, pvalue)
+        self.storage.push_int_rewards(self.irew_gen(net_in[0]), pvalue)
         return next_states
 
     @staticmethod
@@ -57,11 +56,11 @@ class RndPpoAgent(PpoAgent):
 
         conf = self.config
         self.storage.calc_gae_returns(next_value, conf.discount_factor, conf.gae_lambda)
-        self.storage.calc_pseudo_returns(
+        self.storage.calc_int_returns(
             next_value,
-            conf.pseudo_discount_factor,
+            conf.int_discount_factor,
             conf.gae_lambda,
-            conf.pret_use_mask,
+            conf.int_use_mask,
         )
 
         p, v, pv, e = (0.0,) * 4
@@ -70,30 +69,30 @@ class RndPpoAgent(PpoAgent):
             self.penv,
             conf.ppo_minibatch_size,
             conf.adv_weight,
-            conf.pseudo_adv_weight,
+            conf.int_adv_weight,
             rnn=self.net.recurrent_body,
             adv_normalize_eps=self.config.adv_normalize_eps,
         )
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:
-                policy, value, pseudo_value, _ = \
+                policy, value, int_value, _ = \
                     self.net(batch.states, batch.rnn_init, batch.masks)
                 policy.set_action(batch.actions)
                 policy_loss = self._policy_loss(policy, batch.advantages, batch.old_log_probs)
                 value_loss = self._rnd_value_loss(value, batch.returns)
-                pseudo_value_loss = self._rnd_value_loss(pseudo_value, batch.pseudo_returns)
+                int_value_loss = self._rnd_value_loss(int_value, batch.int_returns)
                 entropy_loss = policy.entropy().mean()
                 self.optimizer.zero_grad()
                 (policy_loss
                  + self.config.value_loss_weight * value_loss
-                 + self.config.pseudo_value_loss_weight * pseudo_value_loss
+                 + self.config.int_value_loss_weight * int_value_loss
                  - self.config.entropy_weight * entropy_loss).backward()
-                aux_loss = self.prew_gen.aux_loss(batch.states)
+                aux_loss = self.irew_gen.aux_loss(batch.states)
                 aux_loss.backward()
                 nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
                 self.optimizer.step()
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
-                pv += pseudo_value_loss.item()
+                pv += int_value_loss.item()
 
         self.lr_cooler.lr_decay(self.optimizer)
         self.clip_eps = self.clip_cooler()

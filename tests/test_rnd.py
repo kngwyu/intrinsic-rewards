@@ -31,15 +31,15 @@ def test_storage() -> None:
         pvalue = torch.randn(NWORKERS)
         policy = policy_head(torch.randn(NWORKERS).view(-1, 1))
         storage.push(state, reward, done, value=value, policy=policy)
-        storage.push_pseudo_rewards(pvalue, prew)
-    storage.calc_pseudo_returns(torch.randn(NWORKERS), gamma=0.99, lambda_=0.95)
+        storage.push_int_rewards(pvalue, prew)
+    storage.calc_int_returns(torch.randn(NWORKERS), gamma=0.99, lambda_=0.95)
     batch = storage.batch_states(penv)
     batch_shape = torch.Size((NSTEP * NWORKERS,))
     assert batch.shape == torch.Size((*batch_shape, 16, 16))
     MINIBATCH = 12
     sampler = rnd.rollout.RndRolloutSampler(storage, penv, MINIBATCH, 1.0, 1.0)
-    assert sampler.pseudo_returns.shape == batch_shape
-    assert sampler.pseudo_values.shape == batch_shape
+    assert sampler.int_returns.shape == batch_shape
+    assert sampler.int_values.shape == batch_shape
     assert sampler.advantages.shape == batch_shape
     for batch in sampler:
         assert len(batch.states) == MINIBATCH

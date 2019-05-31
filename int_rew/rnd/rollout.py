@@ -30,30 +30,30 @@ class RndRolloutStorage(RolloutStorage[State]):
         self.__dict__.update(ros.__dict__)
         self.rff = RewardForwardFilter(gamma, nworkers, rnd_device)
         self.rff_rms = RunningMeanStdTorch(shape=(), device=rnd_device)
-        self.pseudo_rewards: List[Tensor] = []
-        self.pseudo_values: List[Tensor] = []
-        self.pseudo_gae = rnd_device.zeros((nsteps + 1, nworkers))
-        self.pseudo_returns = rnd_device.zeros((nsteps, nworkers))
+        self.int_rewards: List[Tensor] = []
+        self.int_values: List[Tensor] = []
+        self.int_gae = rnd_device.zeros((nsteps + 1, nworkers))
+        self.int_returns = rnd_device.zeros((nsteps, nworkers))
         self.rnd_device = rnd_device
 
-    def push_pseudo_rewards(self, prew: Tensor, pval: Tensor) -> None:
-        self.pseudo_rewards.append(self.rff.update(self.rnd_device.tensor(prew)))
-        self.pseudo_values.append(self.rnd_device.tensor(pval))
+    def push_int_rewards(self, prew: Tensor, pval: Tensor) -> None:
+        self.int_rewards.append(self.rff.update(self.rnd_device.tensor(prew)))
+        self.int_values.append(self.rnd_device.tensor(pval))
 
     def reset(self) -> None:
         super().reset()
-        self.pseudo_rewards.clear()
-        self.pseudo_values.clear()
+        self.int_rewards.clear()
+        self.int_values.clear()
 
-    def batch_pseudo_values(self) -> Tensor:
+    def batch_int_values(self) -> Tensor:
         return torch.cat(self.values[:self.nsteps])
 
-    def normalize_pseudo_rewards(self) -> Tensor:
-        rewards = torch.cat(self.pseudo_rewards)
+    def normalize_int_rewards(self) -> Tensor:
+        rewards = torch.cat(self.int_rewards)
         self.rff_rms.update(rewards)
         return rewards.div_(self.rff_rms.var.sqrt())
 
-    def calc_pseudo_returns(
+    def calc_int_returns(
             self,
             next_value: Tensor,
             gamma: float,
@@ -62,15 +62,15 @@ class RndRolloutStorage(RolloutStorage[State]):
     ) -> None:
         """Calcurates the GAE return of pseudo rewards
         """
-        self.pseudo_values.append(self.rnd_device.tensor(next_value))
-        rewards = self.normalize_pseudo_rewards()
+        self.int_values.append(self.rnd_device.tensor(next_value))
+        rewards = self.normalize_int_rewards()
         masks = self.masks if use_mask else self.rnd_device.ones(self.nsteps + 1)
-        self.pseudo_gae.fill_(0.0)
+        self.int_gae.fill_(0.0)
         for i in reversed(range(self.nsteps)):
             td_error = rewards[i] + \
-                gamma * self.pseudo_values[i + 1] * masks[i + 1] - self.pseudo_values[i]
-            self.pseudo_gae[i] = td_error + gamma * lambda_ * masks[i] * self.pseudo_gae[i + 1]
-            self.pseudo_returns[i] = self.pseudo_gae[i] + self.pseudo_values[i]
+                gamma * self.int_values[i + 1] * masks[i + 1] - self.int_values[i]
+            self.int_gae[i] = td_error + gamma * lambda_ * masks[i] * self.int_gae[i + 1]
+            self.int_returns[i] = self.int_gae[i] + self.int_values[i]
 
 
 class RndRolloutBatch(NamedTuple):
@@ -80,8 +80,8 @@ class RndRolloutBatch(NamedTuple):
     returns: Tensor
     values: Tensor
     old_log_probs: Tensor
-    pseudo_values: Tensor
-    pseudo_returns: Tensor
+    int_values: Tensor
+    int_returns: Tensor
     advantages: Tensor
     rnn_init: RnnState
 
@@ -98,10 +98,10 @@ class RndRolloutSampler(RolloutSampler):
             adv_normalize_eps: Optional[float] = None
     ) -> None:
         super().__init__(storage, penv, minibatch_size, rnn, None)
-        self.pseudo_returns = storage.pseudo_returns.flatten()
-        self.pseudo_values = storage.batch_pseudo_values()
-        pseudo_advs = storage.pseudo_gae[:-1].flatten().to(self.advantages.device)
-        self.advantages.mul_(ext_coeff).add_(pseudo_advs * int_coeff)
+        self.int_returns = storage.int_returns.flatten()
+        self.int_values = storage.batch_int_values()
+        int_advs = storage.int_gae[:-1].flatten().to(self.advantages.device)
+        self.advantages.mul_(ext_coeff).add_(int_advs * int_coeff)
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)
 
@@ -113,8 +113,8 @@ class RndRolloutSampler(RolloutSampler):
             self.returns[i],
             self.values[i],
             self.old_log_probs[i],
-            self.pseudo_values[i],
-            self.pseudo_returns[i],
+            self.int_values[i],
+            self.int_returns[i],
             self.advantages[i],
             self.rnn_init[i[:len(i) // self.nsteps]]
         )

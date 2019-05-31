@@ -8,7 +8,7 @@ with io.open('int_rew/__init__.py', 'rt', encoding='utf8') as f:
 
 
 setup(
-    name='intrisic_rewards',
+    name='intrinsic_rewards',
     version=version,
     url='https://github.com/kngwyu/intrinsic_rewards',
     project_urls={
@@ -17,7 +17,7 @@ setup(
     },
     author='Yuji Kanagawa',
     author_email='yuji.kngw.80s.revive@gmail.com',
-    description='A collection of DRL algorithms with pseudo rewards',
+    description='A collection of DRL algorithms with intrinsic rewards',
     packages=find_packages(),
     python_requires='>=3.6',
     classifiers=[

@@ -8,7 +8,7 @@ from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
 
-class PseudoRewardGenerator:
+class IntRewardGenerator:
     def __init__(
             self,
             target: NetworkBlock,
@@ -22,7 +22,7 @@ class PseudoRewardGenerator:
         self.device = device
         self.ob_rms = RunningMeanStdTorch(target.input_dim, device)
 
-    def pseudo_reward(self, state: Array[float]) -> Tensor:
+    def __call__(self, state: Array[float]) -> Tensor:
         s = self.device.tensor(state).mul_(255.0)
         self.ob_rms.update(s.double())
         with torch.no_grad():
@@ -80,12 +80,12 @@ class RndConvBody(NetworkBlock):
         return self.fcs[-1](x)
 
 
-def prew_gen_deafult(
+def irew_gen_deafult(
         params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
         channels: Sequence[int] = (32, 64, 64),
         output_dim: int = 512,
-) -> Callable[[Tuple[int, int, int], Device], PseudoRewardGenerator]:
-    def _make_prew_gen(input_dim: Tuple[int, ...], device: Device) -> PseudoRewardGenerator:
+) -> Callable[[Tuple[int, int, int], Device], IntRewardGenerator]:
+    def _make_irew_gen(input_dim: Tuple[int, ...], device: Device) -> IntRewardGenerator:
         cnns, hidden = make_cnns(input_dim, params, channels)
         target = RndConvBody(cnns, [nn.Linear(hidden, output_dim)], input_dim)
         predictor_fc = [
@@ -95,5 +95,5 @@ def prew_gen_deafult(
         ]
         cnns, _ = make_cnns(input_dim, params, channels)
         predictor = RndConvBody(cnns, predictor_fc, input_dim)
-        return PseudoRewardGenerator(target, predictor, device)
-    return _make_prew_gen
+        return IntRewardGenerator(target, predictor, device)
+    return _make_irew_gen
