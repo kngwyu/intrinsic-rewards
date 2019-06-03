@@ -15,11 +15,11 @@ def config() -> Config:
     c.max_steps = int(2e7)
     c.grad_clip = 0.5
     # ppo params
-    c.nworkers = 12
+    c.nworkers = 32
     c.nsteps = 128
     c.value_loss_weight = 0.5
     c.gae_lambda = 0.95
-    c.ppo_minibatch_size = (12 * 128) // 4
+    c.ppo_minibatch_size = (32 * 128) // 4
     c.ppo_clip = 0.1
     c.ppo_epochs = 4
     c.use_gae = True

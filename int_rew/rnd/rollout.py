@@ -14,7 +14,7 @@ class RewardForwardFilter:
         self.nonepisodic_return = device.zeros(nworkers)
 
     def update(self, prew: Tensor) -> Tensor:
-        self.nonepisodic_return.div_(self.gamma).add_(prew)
+        self.nonepisodic_return.mul_(self.gamma).add_(prew)
         return self.nonepisodic_return.clone().detach()
 
 

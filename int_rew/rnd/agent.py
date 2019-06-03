@@ -52,18 +52,18 @@ class RndPpoAgent(PpoAgent):
             states = self._one_step(states)
 
         with torch.no_grad():
-            next_value = self.net.value(*self._network_in(states))
+            next_value, next_int_value = self.net.values(*self._network_in(states))
 
         conf = self.config
         self.storage.calc_gae_returns(next_value, conf.discount_factor, conf.gae_lambda)
         self.storage.calc_int_returns(
-            next_value,
+            next_int_value,
             conf.int_discount_factor,
             conf.gae_lambda,
             conf.int_use_mask,
         )
 
-        p, v, pv, e = (0.0,) * 4
+        p, v, iv, e = (0.0,) * 4
         sampler = RndRolloutSampler(
             self.storage,
             self.penv,
@@ -92,12 +92,12 @@ class RndPpoAgent(PpoAgent):
                 nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
                 self.optimizer.step()
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
-                pv += int_value_loss.item()
+                iv += int_value_loss.item()
 
         self.lr_cooler.lr_decay(self.optimizer)
         self.clip_eps = self.clip_cooler()
         self.storage.reset()
 
-        p, v, pv, e = map(lambda x: x / float(self.num_updates), (p, v, pv, e))
-        self.report_loss(policy_loss=p, value_loss=v, entropy_loss=e)
+        p, v, iv, e = map(lambda x: x / float(self.num_updates), (p, v, iv, e))
+        self.report_loss(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)
         return states
