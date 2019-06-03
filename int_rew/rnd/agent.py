@@ -1,6 +1,7 @@
 from itertools import chain
 from rainy import Config
 from rainy.agents import PpoAgent
+from rainy.lib.rollout import RolloutSampler
 from rainy.prelude import Array, State
 import torch
 from torch import Tensor
@@ -19,28 +20,28 @@ class RndPpoAgent(PpoAgent):
             config.nsteps,
             config.nworkers,
             config.discount_factor,
+            rnd_device=rnd_device,
         )
-        self.irew_gen = config.int_reward_gen(self.penv.state_dim, rnd_device)
+        self.irew_gen = config.int_reward_gen(config, rnd_device)
         self.optimizer = config.optimizer(chain(self.net.parameters(), self.irew_gen.params()))
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
-        nbatchs = -(-self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
+        nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
 
     def members_to_save(self) -> Tuple[str, ...]:
         return 'net', 'clip_eps', 'clip_cooler', 'optimizer'
 
     def _one_step(self, states: Array[State]) -> Array[State]:
-        net_in = self._network_in(states)
         with torch.no_grad():
-            policy, value, pvalue, rnns = self.net(*net_in)
+            policy, value, pvalue, rnns = self.net(*self._network_in(states))
         next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
         self.episode_length += 1
         self.rewards += rewards
         self.report_reward(done, info)
         self.storage.push(next_states, rewards, done, rnn_state=rnns, policy=policy, value=value)
-        self.storage.push_int_rewards(self.irew_gen(net_in[0]), pvalue)
+        self.storage.push_int_value(pvalue)
         return next_states
 
     @staticmethod
@@ -54,23 +55,29 @@ class RndPpoAgent(PpoAgent):
         with torch.no_grad():
             next_value, next_int_value = self.net.values(*self._network_in(states))
 
-        conf = self.config
-        self.storage.calc_gae_returns(next_value, conf.discount_factor, conf.gae_lambda)
+        cfg = self.config
+        self.storage.calc_gae_returns(next_value, cfg.discount_factor, cfg.gae_lambda)
+        normal_sampler = RolloutSampler(
+            self.storage,
+            self.penv,
+            cfg.ppo_minibatch_size,
+            rnn=self.net.recurrent_body,
+        )
         self.storage.calc_int_returns(
             next_int_value,
-            conf.int_discount_factor,
-            conf.gae_lambda,
-            conf.int_use_mask,
+            self.irew_gen.gen_rewards(normal_sampler.states),
+            cfg.int_discount_factor,
+            cfg.gae_lambda,
+            cfg.int_use_mask,
         )
 
         p, v, iv, e = (0.0,) * 4
         sampler = RndRolloutSampler(
+            normal_sampler,
             self.storage,
-            self.penv,
-            conf.ppo_minibatch_size,
-            conf.adv_weight,
-            conf.int_adv_weight,
-            rnn=self.net.recurrent_body,
+            self.irew_gen.cached_target,
+            cfg.adv_weight,
+            cfg.int_adv_weight,
             adv_normalize_eps=self.config.adv_normalize_eps,
         )
         for _ in range(self.config.ppo_epochs):
@@ -85,9 +92,13 @@ class RndPpoAgent(PpoAgent):
                 self.optimizer.zero_grad()
                 (policy_loss
                  + self.config.value_loss_weight * value_loss
-                 + self.config.int_value_loss_weight * int_value_loss
+                 + self.config.value_loss_weight * int_value_loss
                  - self.config.entropy_weight * entropy_loss).backward()
-                aux_loss = self.irew_gen.aux_loss(batch.states)
+                aux_loss = self.irew_gen.aux_loss(
+                    batch.states,
+                    batch.targets,
+                    cfg.auxloss_use_ratio
+                )
                 aux_loss.backward()
                 nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
                 self.optimizer.step()

@@ -8,21 +8,18 @@ from torch.optim import Adam
 
 def config() -> Config:
     c = rnd.default_config()
-    c.set_env(lambda: Atari('Venture', frame_stack=False))
-    c.set_net_fn('actor-critic', rnd.net.rnd_ac_conv())
+    c.set_env(lambda: Atari('Venture', cfg=rnd.atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
-    c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-4))
-    c.max_steps = int(2e7)
-    c.grad_clip = 0.5
+    c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
+    c.max_steps = int(1e8)
+    c.grad_clip = 1.0
     # ppo params
-    c.nworkers = 32
+    c.nworkers = 64
     c.nsteps = 128
     c.value_loss_weight = 0.5
     c.gae_lambda = 0.95
-    c.ppo_minibatch_size = (32 * 128) // 4
-    c.ppo_clip = 0.1
-    c.ppo_epochs = 4
-    c.use_gae = True
+    c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
+    c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)
     c.use_reward_monitor = True
     # eval settings
     c.eval_env = Atari('Venture')
