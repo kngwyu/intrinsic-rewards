@@ -31,7 +31,7 @@ class RndPpoAgent(PpoAgent):
         self.num_updates = self.config.ppo_epochs * nbatchs
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return 'net', 'clip_eps', 'clip_cooler', 'optimizer'
+        return 'net', 'clip_eps', 'clip_cooler', 'optimizer', 'irew_gen'
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():

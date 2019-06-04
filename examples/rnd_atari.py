@@ -9,7 +9,6 @@ from torch.optim import Adam
 def config() -> Config:
     c = rnd.default_config()
     c.set_env(lambda: Atari('Venture', cfg=rnd.atari_config(), frame_stack=False))
-    c.set_parallel_env(atari_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
     c.max_steps = int(1e8)
     c.grad_clip = 1.0

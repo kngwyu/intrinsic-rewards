@@ -1,12 +1,11 @@
-from rainy import Config
-from rainy.envs import AtariConfig
+import rainy
 from .agent import RndPpoAgent
 from .irew import irew_gen_deafult
 from .net import rnd_ac_conv
 
 
-def default_config() -> Config:
-    config = Config()
+def default_config() -> rainy.Config:
+    config = rainy.Config()
     setattr(config, 'adv_weight', 2.0)
     setattr(config, 'int_adv_weight', 1.0)
     setattr(config, 'int_discount_factor', 0.99)
@@ -20,11 +19,12 @@ def default_config() -> Config:
     config.ppo_clip = 0.1
     config.use_gae = True
     config.set_net_fn('actor-critic', rnd_ac_conv())
+    config.set_parallel_env(rainy.envs.atari_parallel())
     return config
 
 
-def atari_config() -> AtariConfig:
-    c = AtariConfig()
+def atari_config() -> rainy.envs.AtariConfig:
+    c = rainy.envs.AtariConfig()
     c.override_timelimit = 4500 * 4
     c.noop_reset = False
     c.sticky_actions = True
