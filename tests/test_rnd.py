@@ -1,4 +1,4 @@
-from rainy.envs import Atari, DummyParallelEnv
+from rainy.envs import Atari, DummyParallelEnv, atari_parallel
 from rainy.envs.testing import DummyEnv
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.net.policy import CategoricalHead
@@ -14,6 +14,7 @@ def test_save_and_load() -> None:
     config.nworkers = 4
     config.nsteps = 4
     config.set_env(lambda: Atari('Venture', cfg=rnd.atari_config(), frame_stack=False))
+    config.set_parallel_env(atari_parallel())
     agent = rnd.RndPpoAgent(config)
     agent.irew_gen.gen_rewards(torch.randn(4 * 4, 2, 84, 84))
     nonep = agent.irew_gen.rff_rms.mean.cpu().numpy()

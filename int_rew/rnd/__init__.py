@@ -19,7 +19,6 @@ def default_config() -> rainy.Config:
     config.ppo_clip = 0.1
     config.use_gae = True
     config.set_net_fn('actor-critic', rnd_ac_conv())
-    config.set_parallel_env(rainy.envs.atari_parallel())
     return config
 
 
