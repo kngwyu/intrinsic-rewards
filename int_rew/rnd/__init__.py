@@ -28,5 +28,4 @@ def atari_config() -> rainy.envs.AtariConfig:
     c.noop_reset = False
     c.sticky_actions = True
     c.v4 = True
-    c.frame_stack = False
     return c
