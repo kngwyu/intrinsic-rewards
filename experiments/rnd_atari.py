@@ -13,10 +13,10 @@ def config() -> Config:
     c.set_env(lambda: Atari(GAME, cfg=rnd.atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
-    c.max_steps = int(1e8)
+    c.max_steps = int(1e8) * 4
     c.grad_clip = 1.0
     # ppo params
-    c.nworkers = 64
+    c.nworkers = 128
     c.nsteps = 128
     c.value_loss_weight = 0.5
     c.gae_lambda = 0.95

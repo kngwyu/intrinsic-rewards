@@ -1,3 +1,4 @@
+from functools import partial
 import torch
 from torch import nn, Tensor
 from typing import Callable, List, Sequence, Tuple
@@ -8,9 +9,14 @@ from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
 
+def _preprocess_default(t: Tensor, device: Device) -> Tensor:
+    """Extract one channel and rescale to 0..255
+    """
+    return t.to(device.unwrapped)[:, -1].mul_(255.0)
+
+
 def _normalize_default(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
-    wh = t.shape[2:]
-    t = t[:, 1].reshape(-1, 1, *wh)
+    t = t.reshape(-1, 1, *t.shape[-2:])
     t.sub_(rms.mean.float()).div_(rms.std().float())
     return torch.clamp(t, -5.0, 5.0)
 
@@ -33,6 +39,7 @@ class IntRewardGenerator:
             gamma: float,
             nworkers: int,
             device: Device,
+            preprocess: Callable[[Tensor, Device], Tensor] = _preprocess_default,
             normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = _normalize_default,
     ) -> None:
         target.to(device.unwrapped)
@@ -41,14 +48,18 @@ class IntRewardGenerator:
         self.predictor = predictor
         self.device = device
         self.ob_rms = RunningMeanStdTorch(target.input_dim[1:], device)
-        self.normalizer = normalizer
         self.rff = RewardForwardFilter(gamma, nworkers, device)
         self.rff_rms = RunningMeanStdTorch(shape=(), device=device)
         self.nworkers = nworkers
         self.cached_target = device.ones(0)
+        self._preprocess = preprocess
+        self.normalizer = normalizer
+
+    def preprocess(self, t: Tensor) -> Tensor:
+        return self._preprocess(t, self.device)
 
     def gen_rewards(self, state: Tensor) -> Tensor:
-        s = self.device.tensor(state).mul_(255.0)
+        s = self.preprocess(state)
         self.ob_rms.update(s.double().view(-1, *self.ob_rms.mean.shape))
         with torch.no_grad():
             normalized_s = self.normalizer(s, self.ob_rms)
@@ -64,7 +75,7 @@ class IntRewardGenerator:
         return rewards.div_(self.rff_rms.var.sqrt())
 
     def aux_loss(self, state: Tensor, target: Tensor, use_ratio: float) -> Tensor:
-        s = self.device.tensor(state).mul_(255.0)
+        s = self.preprocess(state)
         normalized_s = self.normalizer(s, self.ob_rms)
         prediction = self.predictor(normalized_s)
         mask = torch.empty(s.size(0)).uniform_() < use_ratio

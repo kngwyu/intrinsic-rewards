@@ -12,6 +12,8 @@ def default_config() -> rainy.Config:
     setattr(config, 'int_use_mask', False)
     setattr(config, 'int_reward_gen', irew_gen_deafult())
     setattr(config, 'auxloss_use_ratio', 0.50)
+    setattr(config, 'intrew_log_freq', 1000)
+    setattr(config, 'initialize_stats', 50)
     config.discount_factor = 0.999
     config.entropy_weight = 0.001
     config.adv_normalize_eps = None

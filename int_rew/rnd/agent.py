@@ -1,8 +1,10 @@
 from itertools import chain
+import numpy as np
 from rainy import Config
 from rainy.agents import PpoAgent
 from rainy.lib.rollout import RolloutSampler
 from rainy.prelude import Array, State
+from rainy.utils.log import ExpStats
 import torch
 from torch import Tensor
 from torch import nn
@@ -29,6 +31,7 @@ class RndPpoAgent(PpoAgent):
         self.clip_eps = config.ppo_clip
         nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
+        self.intrew_stats = ExpStats()
 
     def members_to_save(self) -> Tuple[str, ...]:
         return 'net', 'clip_eps', 'clip_cooler', 'optimizer', 'irew_gen'
@@ -48,7 +51,20 @@ class RndPpoAgent(PpoAgent):
     def _rnd_value_loss(prediction: Tensor, target: Tensor) -> Tensor:
         return 0.5 * (prediction - target.to(prediction.device)).pow(2).mean()
 
+    def initialize_stats(self, t: int) -> None:
+        for i in range(self.config.nsteps * t):
+            actions = np.random.randint(self.penv.action_dim, size=self.config.nworkers)
+            states, rewards, done, _ = self.penv.step(actions)
+            self.storage.push(states, rewards, done)
+            if (i + 1) % self.config.nsteps == 0:
+                s = self.irew_gen.preprocess(self.storage.batch_states(self.penv))
+                self.irew_gen.ob_rms.update(s.double().view(-1, *self.penv.state_dim[1:]))
+                self.storage.reset()
+
     def nstep(self, states: Array[State]) -> Array[State]:
+        if self.update_steps == 0 and self.config.initialize_stats is not None:
+            self.initialize_stats(self.config.initialize_stats)
+            states = self.storage.states[0]
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
 
@@ -63,13 +79,25 @@ class RndPpoAgent(PpoAgent):
             cfg.ppo_minibatch_size,
             rnn=self.net.recurrent_body,
         )
+
+        int_rewards = self.irew_gen.gen_rewards(normal_sampler.states)
         self.storage.calc_int_returns(
             next_int_value,
-            self.irew_gen.gen_rewards(normal_sampler.states),
+            int_rewards,
             cfg.int_discount_factor,
             cfg.gae_lambda,
             cfg.int_use_mask,
         )
+
+        self.intrew_stats.update({
+            'intrew_mean': int_rewards.mean().item(),
+            'intrew_max': int_rewards.max().item(),
+            'intrew_min': int_rewards.min().item(),
+        })
+        if self.update_steps > 0 and self.update_steps % self.config.intrew_log_freq == 0:
+            d = self.intrew_stats.report_and_reset()
+            d['update-steps'] = self.update_steps
+            self.logger.exp('intrew', d)
 
         p, v, iv, e = (0.0,) * 4
         sampler = RndRolloutSampler(
