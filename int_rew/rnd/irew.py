@@ -1,4 +1,3 @@
-from functools import partial
 import torch
 from torch import nn, Tensor
 from typing import Callable, List, Sequence, Tuple
@@ -68,11 +67,9 @@ class IntRewardGenerator:
         nsteps = s.size(0) // self.nworkers
         error = (self.cached_target - prediction).pow(2)
         rewards = error.view(nsteps, self.nworkers, -1).mean(dim=-1)
-        for i in range(nsteps):
-            rew = self.rff.update(rewards[i])
-            rewards[i].copy_(rew)
-        self.rff_rms.update(rewards.view(-1))
-        return rewards.div_(self.rff_rms.var.sqrt())
+        rffs_int = torch.cat([self.rff.update(rewards[i]) for i in range(nsteps)])
+        self.rff_rms.update(rffs_int.view(-1))
+        return rewards.div_(self.rff_rms.std())
 
     def aux_loss(self, state: Tensor, target: Tensor, use_ratio: float) -> Tensor:
         s = self.preprocess(state)
