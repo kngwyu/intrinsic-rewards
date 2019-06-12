@@ -1,3 +1,4 @@
+import rainy
 from rainy.envs import Atari, DummyParallelEnv, atari_parallel
 from rainy.envs.testing import DummyEnv
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
@@ -9,18 +10,24 @@ from numpy.testing import assert_array_almost_equal
 from int_rew import rnd
 
 
+def config() -> rainy.Config:
+    c = rnd.default_config()
+    c.nworkers = 4
+    c.nsteps = 4
+    c.set_env(lambda: Atari('Venture', cfg=rnd.atari_config(), frame_stack=False))
+    c.set_parallel_env(atari_parallel())
+    return c
+
+
 def test_save_and_load() -> None:
-    config = rnd.default_config()
-    config.nworkers = 4
-    config.nsteps = 4
-    config.set_env(lambda: Atari('Venture', cfg=rnd.atari_config(), frame_stack=False))
-    config.set_parallel_env(atari_parallel())
-    agent = rnd.RndPpoAgent(config)
+    agent = rnd.RndPpoAgent(config())
     agent.irew_gen.gen_rewards(torch.randn(4 * 4, 2, 84, 84))
     nonep = agent.irew_gen.rff_rms.mean.cpu().numpy()
     agent.save('agent.pth')
     agent.close()
-    agent = rnd.RndPpoAgent(config)
+    c = config()
+    c.device = Device(use_cpu=True)
+    agent = rnd.RndPpoAgent(c)
     agent.load('agent.pth')
     nonep_new = agent.irew_gen.rff_rms.mean.cpu().numpy()
     assert_array_almost_equal(nonep, nonep_new)

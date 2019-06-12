@@ -6,6 +6,7 @@ from rainy.net import Initializer, make_cnns, NetworkBlock
 from rainy.net.prelude import Params
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
+from rainy.utils.state_dict import HasStateDict, TensorStateDict
 
 
 def _preprocess_default(t: Tensor, device: Device) -> Tensor:
@@ -20,7 +21,7 @@ def _normalize_default(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
     return torch.clamp(t, -5.0, 5.0)
 
 
-class RewardForwardFilter:
+class RewardForwardFilter(TensorStateDict):
     def __init__(self, gamma: float, nworkers: int, device: Device) -> None:
         self.gamma = gamma
         self.nonepisodic_return = device.zeros(nworkers)
@@ -30,7 +31,7 @@ class RewardForwardFilter:
         return self.nonepisodic_return
 
 
-class IntRewardGenerator:
+class IntRewardGenerator(HasStateDict):
     def __init__(
             self,
             target: NetworkBlock,
@@ -41,6 +42,7 @@ class IntRewardGenerator:
             preprocess: Callable[[Tensor, Device], Tensor] = _preprocess_default,
             normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = _normalize_default,
     ) -> None:
+        super().__init__()
         target.to(device.unwrapped)
         predictor.to(device.unwrapped)
         self.target = target
@@ -53,6 +55,20 @@ class IntRewardGenerator:
         self.cached_target = device.ones(0)
         self._preprocess = preprocess
         self.normalizer = normalizer
+
+    def state_dict(self) -> dict:
+        return {
+            'target': self.target.state_dict(),
+            'predictor': self.predictor.state_dict(),
+            'ob_rms': self.ob_rms.state_dict(),
+            'rff': self.rff.state_dict(),
+            'rff_rms': self.rff_rms.state_dict(),
+        }
+
+    def load_state_dict(self, d: dict) -> None:
+        for key in d.keys():
+            obj = getattr(self, key)
+            obj.load_state_dict(d[key])
 
     def preprocess(self, t: Tensor) -> Tensor:
         return self._preprocess(t, self.device)
