@@ -166,7 +166,7 @@
         "rainy": {
             "editable": true,
             "git": "https://github.com/kngwyu/Rainy.git",
-            "ref": "81f9a55e16d2d162c9880329dbf3ca646a596ad2"
+            "ref": "8980e42b43480c0cc3110955bacfeaf8550242df"
         },
         "scipy": {
             "hashes": [
