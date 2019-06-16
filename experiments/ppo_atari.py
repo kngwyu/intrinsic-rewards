@@ -7,7 +7,7 @@ from rainy.envs import Atari, atari_parallel
 from int_rew.rnd import atari_config
 from torch.optim import Adam
 
-GAME = 'MontezumaRevenge'
+GAME = 'Venture'
 
 
 def config() -> rainy.Config:
@@ -16,7 +16,7 @@ def config() -> rainy.Config:
     c.set_parallel_env(atari_parallel())
     c.set_net_fn('actor-critic', rainy.net.actor_critic.ac_conv())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
-    c.max_steps = int(1e8) * 4
+    c.max_steps = int(1e8) * 6
     c.grad_clip = 1.0
     # ppo params
     c.discount_factor = 0.999
@@ -24,7 +24,7 @@ def config() -> rainy.Config:
     c.ppo_epochs = 4
     c.ppo_clip = 0.1
     c.use_gae = True
-    c.nworkers = 64
+    c.nworkers = 128
     c.nsteps = 128
     c.value_loss_weight = 0.5 * 0.5
     c.gae_lambda = 0.95
