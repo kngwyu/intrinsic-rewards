@@ -33,3 +33,7 @@ Commit hash: aa4ebf0c3e9090d11fbd88a5de44aa2189f1d232
 ![Venture](./pictures/venture.png)
 
 ![Montezuma's Revenge](./pictures/montezuma.png)
+
+## License
+This project is licensed under Apache License, Version 2.0
+([LICENSE-APACHE](LICENSE) or http://www.apache.org/licenses/LICENSE-2.0).
