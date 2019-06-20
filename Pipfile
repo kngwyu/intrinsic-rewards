@@ -8,8 +8,7 @@ editable = true
 path = '.'
 
 [packages.rainy]
-editable = true
-git = 'https://github.com/kngwyu/Rainy.git'
+version = "==0.2.0"
 
 [dev-packages]
 pytest = "==3.10.1"
