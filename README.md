@@ -23,6 +23,13 @@ pipenv --site-packages --three install
 ## Results
 Commit hash: aa4ebf0c3e9090d11fbd88a5de44aa2189f1d232
 
+- RND
+  - with 128 parallel enviroments + CNN policy(NO LSTM)
+  - All parameters are the same as the paper
+- PPO
+  - with the same setting
+  - All parameters are in [ppo_atari.py](experiments/ppo_atari.py)
+
 ![Venture](./pictures/venture.png)
 
 ![Montezuma's Revenge](./pictures/montezuma.png)
