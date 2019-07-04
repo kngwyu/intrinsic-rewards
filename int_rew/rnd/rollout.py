@@ -10,13 +10,13 @@ from typing import List, NamedTuple, Optional
 class RndRolloutStorage(RolloutStorage[State]):
     def __init__(
             self,
-            ros: RolloutStorage[State],
             nsteps: int,
             nworkers: int,
+            device: Device,
             gamma: float,
             rnd_device: Device = Device(use_cpu=True)
     ) -> None:
-        self.__dict__.update(ros.__dict__)
+        super().__init__(nsteps, nworkers, device)
         self.int_rewards: List[Tensor] = []
         self.int_values: List[Tensor] = []
         self.int_gae = rnd_device.zeros((nsteps + 1, nworkers))

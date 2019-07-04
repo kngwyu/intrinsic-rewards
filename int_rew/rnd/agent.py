@@ -2,12 +2,12 @@ from itertools import chain
 import numpy as np
 from rainy import Config
 from rainy.agents import PpoAgent
+from rainy.lib import mpi
 from rainy.lib.rollout import RolloutSampler
 from rainy.prelude import Array, State
 from rainy.utils.log import ExpStats
 import torch
 from torch import Tensor
-from torch import nn
 from typing import Tuple
 from .rollout import RndRolloutSampler, RndRolloutStorage
 
@@ -18,9 +18,9 @@ class RndPpoAgent(PpoAgent):
         self.net = config.net('actor-critic')
         rnd_device = config.device.split()
         self.storage = RndRolloutStorage(
-            self.storage,
             config.nsteps,
             config.nworkers,
+            config.device,
             config.discount_factor,
             rnd_device=rnd_device,
         )
@@ -32,6 +32,8 @@ class RndPpoAgent(PpoAgent):
         nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
         self.intrew_stats = ExpStats()
+        mpi.setup_models(self.net, self.irew_gen.target, self.irew_gen.predictor)
+        self.optimizer = mpi.setup_optimizer(self.optimizer)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return 'net', 'clip_eps', 'clip_cooler', 'optimizer', 'irew_gen'
@@ -128,8 +130,7 @@ class RndPpoAgent(PpoAgent):
                     cfg.auxloss_use_ratio
                 )
                 aux_loss.backward()
-                nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
-                self.optimizer.step()
+                mpi.clip_and_step(self.net, self.config.grad_clip, self.optimizer)
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
                 iv += int_value_loss.item()
 

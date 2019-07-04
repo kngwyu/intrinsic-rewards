@@ -1,8 +1,8 @@
 import rainy
 from rainy.envs import Atari, DummyParallelEnv, atari_parallel
 from rainy.envs.testing import DummyEnv
-from rainy.lib.rollout import RolloutSampler, RolloutStorage
-from rainy.net.policy import CategoricalHead
+from rainy.lib.rollout import RolloutSampler
+from rainy.net.policy import CategoricalDist
 from rainy.utils import Device
 import torch
 from numpy.testing import assert_array_almost_equal
@@ -40,16 +40,15 @@ def test_storage_and_irew() -> None:
     ACTION_DIM = 3
     NWORKERS = penv.num_envs
     states = penv.reset()
-    dev = Device()
     storage = rnd.rollout.RndRolloutStorage(
-        RolloutStorage(NSTEPS, NWORKERS, dev),
         NSTEPS,
         NWORKERS,
+        Device(),
         0.99,
         Device(use_cpu=True)
     )
     storage.set_initial_state(states)
-    policy_head = CategoricalHead(ACTION_DIM)
+    policy_head = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEPS):
         state, reward, done, _ = penv.step([None] * NWORKERS)
         value = torch.randn(NWORKERS)
