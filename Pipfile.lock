@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8a51b0e46b7ebbb2ae5ddf35086ec5add86f5d0148e0ccdff1ab01454480e26b"
+            "sha256": "0891886c2340d007c4df28aaa7e117c7564422fe1e4cc7614e79c4e67d337316"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -47,8 +47,7 @@
             "version": "==1.16.4"
         },
         "rainy": {
-            "editable": true,
-            "git": "https://github.com/kngwyu/Rainy.git"
+            "version": "==0.3.0"
         },
         "torch": {
             "hashes": [
@@ -126,10 +125,10 @@
         },
         "zipp": {
             "hashes": [
-                "sha256:8c1019c6aad13642199fbe458275ad6a84907634cc9f0989877ccc4a2840139d",
-                "sha256:ca943a7e809cc12257001ccfb99e3563da9af99d52f261725e96dfe0f9275bc3"
+                "sha256:4970c3758f4e89a7857a973b1e2a5d75bcdc47794442f2e2dd4fe8e0466e809a",
+                "sha256:8a5712cfd3bb4248015eb3b0b3c54a5f6ee3f2425963ef2a0125b8bc40aafaec"
             ],
-            "version": "==0.5.1"
+            "version": "==0.5.2"
         }
     }
 }

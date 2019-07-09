@@ -8,9 +8,9 @@ editable = true
 path = '.'
 
 [packages.rainy]
-editable = true
-git = 'https://github.com/kngwyu/Rainy.git'
-# version = "==0.2.0"
+version = "==0.3.0"
+# editable = true
+# git = 'https://github.com/kngwyu/Rainy.git'
 
 [packages]
 torch = "==1.1.0"
