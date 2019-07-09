@@ -7,12 +7,10 @@ from rainy.envs import Atari, atari_parallel
 from int_rew.rnd import atari_config
 from torch.optim import Adam
 
-GAME = 'Venture'
 
-
-def config() -> rainy.Config:
+def config(game: str = 'Venture') -> rainy.Config:
     c = rainy.Config()
-    c.set_env(lambda: Atari(GAME, cfg=atari_config(), frame_stack=False))
+    c.set_env(lambda: Atari(game, cfg=atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
     c.set_net_fn('actor-critic', rainy.net.actor_critic.ac_conv())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
@@ -31,7 +29,7 @@ def config() -> rainy.Config:
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.use_reward_monitor = True
     # eval settings
-    c.eval_env = Atari(GAME, cfg=atari_config())
+    c.eval_env = Atari(game, cfg=atari_config())
     c.episode_log_freq = 100
     c.eval_freq = None
     c.save_freq = None
