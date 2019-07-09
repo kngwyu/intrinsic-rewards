@@ -31,7 +31,7 @@ EXPAND = ImageSetting(dungeon=DungeonType.SYMBOL, status=StatusFlag.EMPTY)
 def config() -> Config:
     c = rnd.default_config()
     c.set_parallel_env(lambda _env_gen, _num_w: ParallelRogueEnvExt(StairRewardParallel(
-        [rogue_config((0, 40))] * c.nworkers,
+        [rogue_config((0, 10))] * c.nworkers,
         max_steps=500,
         stair_reward=50.0,
         image_setting=EXPAND,
