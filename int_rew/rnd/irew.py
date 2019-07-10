@@ -1,10 +1,11 @@
 import torch
 from torch import nn, Tensor
-from typing import Callable, List, Sequence, Tuple
+from typing import Callable, List, Optional, Sequence, Tuple
 from rainy import Config
 from rainy.net import Initializer, make_cnns, NetworkBlock
 from rainy.net.prelude import Params
 from rainy.utils import Device
+from rainy.utils.log import ExpStats
 from rainy.utils.rms import RunningMeanStdTorch
 from rainy.utils.state_dict import HasStateDict, TensorStateDict
 
@@ -73,7 +74,7 @@ class IntRewardGenerator(HasStateDict):
     def preprocess(self, t: Tensor) -> Tensor:
         return self._preprocess(t, self.device)
 
-    def gen_rewards(self, state: Tensor) -> Tensor:
+    def gen_rewards(self, state: Tensor, reporter: Optional[ExpStats] = None) -> Tensor:
         s = self.preprocess(state)
         self.ob_rms.update(s.double().view(-1, *self.ob_rms.mean.shape))
         with torch.no_grad():
@@ -85,6 +86,11 @@ class IntRewardGenerator(HasStateDict):
         rewards = error.view(nsteps, self.nworkers, -1).mean(dim=-1)
         rffs_int = torch.cat([self.rff.update(rewards[i]) for i in range(nsteps)])
         self.rff_rms.update(rffs_int.view(-1))
+        if reporter is not None:
+            reporter.update({
+                'intrew_raw_mean': rewards.mean().item(),
+                'int_rffs_mean': rffs_int.mean().item(),
+            })
         return rewards.div_(self.rff_rms.std())
 
     def aux_loss(self, state: Tensor, target: Tensor, use_ratio: float) -> Tensor:
@@ -137,6 +143,8 @@ def irew_gen_deafult(
         params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
         channels: Sequence[int] = (32, 64, 64),
         output_dim: int = 512,
+        preprocess: Callable[[Tensor, Device], Tensor] = _preprocess_default,
+        normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = _normalize_default,
 ) -> Callable[[Config, Device], IntRewardGenerator]:
     def _make_irew_gen(cfg: Config, device: Device) -> IntRewardGenerator:
         input_dim = 1, *cfg.state_dim[1:]
@@ -154,6 +162,8 @@ def irew_gen_deafult(
             predictor,
             cfg.int_discount_factor,
             cfg.nworkers,
-            device
+            device,
+            preprocess=preprocess,
+            normalizer=normalizer,
         )
     return _make_irew_gen

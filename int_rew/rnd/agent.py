@@ -82,7 +82,7 @@ class RndPpoAgent(PpoAgent):
             rnn=self.net.recurrent_body,
         )
 
-        int_rewards = self.irew_gen.gen_rewards(normal_sampler.states)
+        int_rewards = self.irew_gen.gen_rewards(normal_sampler.states, reporter=self.irew_stats)
         self.storage.calc_int_returns(
             next_int_value,
             int_rewards,
