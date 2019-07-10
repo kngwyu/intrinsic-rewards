@@ -1,6 +1,8 @@
 from int_rew import rnd
+import os
 from rainy import Config
 from rainy.net import actor_critic
+from rainy.utils import cli
 from rogue_gym.envs import DungeonType, ImageSetting, RogueEnv, \
     StairRewardEnv, StairRewardParallel, StatusFlag
 from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
@@ -41,7 +43,7 @@ def config() -> Config:
     c.eval_freq = None
     c.eval_env = RogueEnvExt(StairRewardEnv(
         RogueEnv(
-            c_dict=rogue_config((1000, 2000)),
+            config_dict=rogue_config((1000, 2000)),
             mex_steps=500,
             stair_reward=50.0,
             image_setting=EXPAND,
@@ -49,13 +51,24 @@ def config() -> Config:
         100.0
     ))
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
-    c.set_net_fn('actor-critic', actor_critic.ac_conv(
+    CNN_PARAM = [(8, 1), (4, 1), (3, 1)]
+    c.set_net_fn('actor-critic', rnd.net.rnd_ac_conv(
+        kernel_and_strides=CNN_PARAM,
         output_dim=256,
-        kernel_and_strides=[(8, 1), (4, 1), (3, 1)]
     ))
+    c.int_reward_gen = rnd.irew.irew_gen_deafult(
+        params=CNN_PARAM,
+        channels=(32, 64, 32),
+        output_dim=256,
+    )
     c.nworkers = 32
     c.nsteps = 125
     c.value_loss_weight = 0.5
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)
+    return c
+
+
+if __name__ == '__main__':
+    cli.run_cli(config, rnd.RndPpoAgent, script_path=os.path.realpath(__file__))
