@@ -86,12 +86,17 @@ class IntRewardGenerator(HasStateDict):
         rewards = error.view(nsteps, self.nworkers, -1).mean(dim=-1)
         rffs_int = torch.cat([self.rff.update(rewards[i]) for i in range(nsteps)])
         self.rff_rms.update(rffs_int.view(-1))
+        rff_rms_std = self.rff_rms.std()
+        normalized_rewards = rewards.div(rff_rms_std)
         if reporter is not None:
             reporter.update({
                 'intrew_raw_mean': rewards.mean().item(),
-                'int_rffs_mean': rffs_int.mean().item(),
+                'intrew_mean': res.mean().item(),
+                'rffs_mean': rffs_int.mean().item(),
+                'rffs_rms_mean': self.rff_rms.mean.mean().item(),
+                'rffs_rms_std': rff_rms_std.mean().item(),
             })
-        return rewards.div_(self.rff_rms.std())
+        return normalized_rewards
 
     def aux_loss(self, state: Tensor, target: Tensor, use_ratio: float) -> Tensor:
         s = self.preprocess(state)
