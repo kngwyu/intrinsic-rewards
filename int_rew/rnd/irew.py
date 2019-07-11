@@ -91,7 +91,7 @@ class IntRewardGenerator(HasStateDict):
         if reporter is not None:
             reporter.update({
                 'intrew_raw_mean': rewards.mean().item(),
-                'intrew_mean': res.mean().item(),
+                'intrew_mean': normalized_rewards.mean().item(),
                 'rffs_mean': rffs_int.mean().item(),
                 'rffs_rms_mean': self.rff_rms.mean.mean().item(),
                 'rffs_rms_std': rff_rms_std.mean().item(),
