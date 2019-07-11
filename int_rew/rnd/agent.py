@@ -82,7 +82,13 @@ class RndPpoAgent(PpoAgent):
             rnn=self.net.recurrent_body,
         )
 
-        int_rewards = self.irew_gen.gen_rewards(normal_sampler.states)
+        int_rewards = self.irew_gen.gen_rewards(normal_sampler.states, reporter=self.intrew_stats)
+
+        if self.update_steps > 0 and self.update_steps % self.config.intrew_log_freq == 0:
+            d = self.intrew_stats.report_and_reset()
+            d['update-steps'] = self.update_steps
+            self.logger.exp('intrew', d)
+
         self.storage.calc_int_returns(
             next_int_value,
             int_rewards,
@@ -90,16 +96,6 @@ class RndPpoAgent(PpoAgent):
             cfg.gae_lambda,
             cfg.int_use_mask,
         )
-
-        self.intrew_stats.update({
-            'intrew_mean': int_rewards.mean().item(),
-            'intrew_max': int_rewards.max().item(),
-            'intrew_min': int_rewards.min().item(),
-        })
-        if self.update_steps > 0 and self.update_steps % self.config.intrew_log_freq == 0:
-            d = self.intrew_stats.report_and_reset()
-            d['update-steps'] = self.update_steps
-            self.logger.exp('intrew', d)
 
         p, v, iv, e = (0.0,) * 4
         sampler = RndRolloutSampler(
