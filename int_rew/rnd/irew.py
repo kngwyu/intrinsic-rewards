@@ -96,7 +96,7 @@ class IntRewardGenerator(HasStateDict):
                 'rffs_rms_mean': self.rff_rms.mean.mean().item(),
                 'rffs_rms_std': rff_rms_std.mean().item(),
             })
-        return normalized_rewards
+        return rewards
 
     def aux_loss(self, state: Tensor, target: Tensor, use_ratio: float) -> Tensor:
         s = self.preprocess(state)
