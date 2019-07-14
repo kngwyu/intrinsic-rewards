@@ -1,13 +1,12 @@
 import os
-from rainy import Config
 import rainy.utils.cli as cli
 from rainy.envs import Atari, atari_parallel
 from int_rew import rnd
 from torch.optim import Adam
 
 
-def config(game: str = 'Venture') -> Config:
-    c = rnd.default_config()
+def config(game: str = 'Venture') -> rnd.RndConfig:
+    c = rnd.RndConfig()
     c.set_env(lambda: Atari(game, cfg=rnd.atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))

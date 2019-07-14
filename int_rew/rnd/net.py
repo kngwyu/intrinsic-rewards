@@ -39,7 +39,8 @@ class RndACNet(SharedBodyACNet):
 def rnd_ac_conv(
         policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
         hidden_channels: Tuple[int, int, int] = (32, 64, 32),
-        output_dim: int = 256, rnn: Callable[[int, int], RnnBlock] = DummyRnn,
+        output_dim: int = 256,
+        rnn: Callable[[int, int], RnnBlock] = DummyRnn,
         **kwargs
 ) -> Callable[[Tuple[int, int, int], int, Device], RndACNet]:
     def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> RndACNet:

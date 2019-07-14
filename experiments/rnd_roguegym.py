@@ -1,7 +1,5 @@
 from int_rew import rnd
 import os
-from rainy import Config
-from rainy.net import actor_critic
 from rainy.utils import cli
 from rogue_gym.envs import DungeonType, ImageSetting, RogueEnv, \
     StairRewardEnv, StairRewardParallel, StatusFlag
@@ -30,8 +28,8 @@ def rogue_config(seed_range: Tuple[int, int]) -> dict:
 EXPAND = ImageSetting(dungeon=DungeonType.SYMBOL, status=StatusFlag.EMPTY)
 
 
-def config() -> Config:
-    c = rnd.default_config()
+def config() -> rnd.RndConfig:
+    c = rnd.RndConfig()
     c.set_parallel_env(lambda _env_gen, _num_w: ParallelRogueEnvExt(StairRewardParallel(
         [rogue_config((0, 10))] * c.nworkers,
         max_steps=500,

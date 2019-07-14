@@ -4,24 +4,26 @@ from .irew import irew_gen_deafult
 from .net import rnd_ac_conv
 
 
-def default_config() -> rainy.Config:
-    config = rainy.Config()
-    setattr(config, 'adv_weight', 2.0)
-    setattr(config, 'int_adv_weight', 1.0)
-    setattr(config, 'int_discount_factor', 0.99)
-    setattr(config, 'int_use_mask', False)
-    setattr(config, 'int_reward_gen', irew_gen_deafult())
-    setattr(config, 'auxloss_use_ratio', 0.50)
-    setattr(config, 'intrew_log_freq', 1000)
-    setattr(config, 'initialize_stats', 50)
-    config.discount_factor = 0.999
-    config.entropy_weight = 0.001
-    config.adv_normalize_eps = None
-    config.ppo_epochs = 4
-    config.ppo_clip = 0.1
-    config.use_gae = True
-    config.set_net_fn('actor-critic', rnd_ac_conv())
-    return config
+class RndConfig(rainy.Config):
+    def __init__(self) -> None:
+        super().__init__()
+        # Override hyper parameters
+        self.discount_factor = 0.999
+        self.entropy_weight = 0.001
+        self.adv_normalize_eps = None
+        self.ppo_epochs = 4
+        self.ppo_clip = 0.1
+        self.use_gae = True
+        self.set_net_fn('actor-critic', rnd_ac_conv())
+        # RND specific parameters
+        self.adv_weight = 2.0
+        self.int_adv_weight = 1.0
+        self.int_discount_factor = 0.99
+        self.int_use_mask = False
+        self.int_reward_gen = irew_gen_deafult()
+        self.auxloss_use_ratio = 0.5
+        self.intrew_log_freq = 1000
+        self.initialize_stats = 50
 
 
 def atari_config() -> rainy.envs.AtariConfig:
