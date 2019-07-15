@@ -24,7 +24,7 @@ class RndPpoAgent(PpoAgent):
             config.discount_factor,
             rnd_device=rnd_device,
         )
-        self.irew_gen = config.int_reward_gen(config, rnd_device)
+        self.irew_gen = config.int_reward_gen(rnd_device)
         self.optimizer = config.optimizer(chain(self.net.parameters(), self.irew_gen.params()))
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()

@@ -54,7 +54,7 @@ def config() -> rnd.RndConfig:
         kernel_and_strides=CNN_PARAM,
         output_dim=256,
     ))
-    c.int_reward_gen = rnd.irew.irew_gen_deafult(
+    c._int_reward_gen = rnd.irew.irew_gen_deafult(
         params=CNN_PARAM,
         channels=(32, 64, 32),
         output_dim=256,
