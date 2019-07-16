@@ -7,13 +7,10 @@ verify_ssl = true
 editable = true
 path = '.'
 
-[packages.rainy]
-version = "==0.3.0"
-# editable = true
-# git = 'https://github.com/kngwyu/Rainy.git'
-
 [packages]
 torch = "==1.1.0"
+rainy = "==0.3.0"
+# rainy = { editable = true, path = '../Rainy' }
 rogue-gym = "==0.0.2"
 
 [dev-packages]
