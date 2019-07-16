@@ -1,7 +1,6 @@
 import torch
 from torch import nn, Tensor
 from typing import Callable, List, Optional, Sequence, Tuple
-from rainy import Config
 from rainy.net import Initializer, make_cnns, NetworkBlock
 from rainy.net.prelude import Params
 from rainy.utils import Device
@@ -150,8 +149,8 @@ def irew_gen_deafult(
         output_dim: int = 512,
         preprocess: Callable[[Tensor, Device], Tensor] = _preprocess_default,
         normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = _normalize_default,
-) -> Callable[[Config, Device], IntRewardGenerator]:
-    def _make_irew_gen(cfg: Config, device: Device) -> IntRewardGenerator:
+) -> Callable[['RndConfig', Device], IntRewardGenerator]:
+    def _make_irew_gen(cfg: 'RndConfig', device: Device) -> IntRewardGenerator:
         input_dim = 1, *cfg.state_dim[1:]
         cnns, hidden = make_cnns(input_dim, params, channels)
         target = RndConvBody(cnns, [nn.Linear(hidden, output_dim)], input_dim)

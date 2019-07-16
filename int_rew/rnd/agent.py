@@ -1,6 +1,5 @@
 from itertools import chain
 import numpy as np
-from rainy import Config
 from rainy.agents import PpoAgent
 from rainy.lib import mpi
 from rainy.lib.rollout import RolloutSampler
@@ -9,11 +8,12 @@ from rainy.utils.log import ExpStats
 import torch
 from torch import Tensor
 from typing import Tuple
+from .config import RndConfig
 from .rollout import RndRolloutSampler, RndRolloutStorage
 
 
 class RndPpoAgent(PpoAgent):
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: RndConfig) -> None:
         super().__init__(config)
         self.net = config.net('actor-critic')
         rnd_device = config.device.split()

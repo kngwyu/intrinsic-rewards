@@ -1,4 +1,3 @@
-import rainy
 from rainy.envs import Atari, DummyParallelEnv, atari_parallel
 from rainy.envs.testing import DummyEnv
 from rainy.lib.rollout import RolloutSampler
@@ -10,8 +9,8 @@ from numpy.testing import assert_array_almost_equal
 from int_rew import rnd
 
 
-def config() -> rainy.Config:
-    c = rnd.default_config()
+def config() -> rnd.RndConfig:
+    c = rnd.RndConfig()
     c.nworkers = 4
     c.nsteps = 4
     c.set_env(lambda: Atari('Venture', cfg=rnd.atari_config(), frame_stack=False))
