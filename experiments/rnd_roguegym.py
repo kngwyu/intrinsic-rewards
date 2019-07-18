@@ -25,7 +25,7 @@ def rogue_config(seed_range: Tuple[int, int]) -> dict:
     }
 
 
-EXPAND = ImageSetting(dungeon=DungeonType.SYMBOL, status=StatusFlag.EMPTY)
+EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 
 def config() -> rnd.RndConfig:
@@ -58,6 +58,8 @@ def config() -> rnd.RndConfig:
         params=CNN_PARAM,
         channels=(32, 64, 32),
         output_dim=256,
+        preprocess=lambda t, device: t.to(device.unwrapped),
+        normalizer=lambda t, rms: t.reshape(-1, 1, *t.shape[-2:])
     )
     c.nworkers = 32
     c.nsteps = 125
