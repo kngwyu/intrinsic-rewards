@@ -1,4 +1,4 @@
-from int_rew import rnd
+import rainy
 import os
 from rainy.utils import cli
 from rogue_gym.envs import DungeonType, ImageSetting, RogueEnv, \
@@ -28,10 +28,10 @@ def rogue_config(seed_range: Tuple[int, int]) -> dict:
 EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 
-def config() -> rnd.RndConfig:
-    c = rnd.RndConfig()
+def config() -> rainy.Config:
+    c = rainy.Config()
     c.set_parallel_env(lambda _env_gen, _num_w: ParallelRogueEnvExt(StairRewardParallel(
-        [rogue_config((0, 10))] * c.nworkers,
+        [rogue_config((1000, 1010))] * c.nworkers,
         max_steps=500,
         stair_reward=50.0,
         image_setting=EXPAND,
@@ -50,25 +50,17 @@ def config() -> rnd.RndConfig:
     ))
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
     CNN_PARAM = [(8, 1), (4, 1), (3, 1)]
-    c.set_net_fn('actor-critic', rnd.net.rnd_ac_conv(
+    c.set_net_fn('actor-critic', rainy.net.actor_critic.ac_conv(
         kernel_and_strides=CNN_PARAM,
         output_dim=256,
     ))
-    c._int_reward_gen = rnd.irew.irew_gen_deafult(
-        params=CNN_PARAM,
-        channels=(32, 64, 32),
-        output_dim=256,
-        preprocess=lambda t, device: t.to(device.unwrapped),
-        normalizer=lambda t, rms: t.reshape(-1, 1, *t.shape[-2:])
-    )
     c.nworkers = 32
     c.nsteps = 125
     c.value_loss_weight = 0.5
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
-    c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)
     return c
 
 
 if __name__ == '__main__':
-    cli.run_cli(config, rnd.RndPpoAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, rainy.agents.PpoAgent, script_path=os.path.realpath(__file__))
