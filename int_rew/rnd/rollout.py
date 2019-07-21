@@ -64,7 +64,7 @@ class RndRolloutBatch(NamedTuple):
     int_values: Tensor
     int_returns: Tensor
     advantages: Tensor
-    targets: Tensor
+    targets: Optional[Tensor]
     rnn_init: RnnState
 
 
@@ -73,7 +73,7 @@ class RndRolloutSampler(RolloutSampler):
             self,
             sampler: RolloutSampler,
             storage: RndRolloutStorage,
-            target: Tensor,
+            target: Optional[Tensor],
             ext_coeff: float,
             int_coeff: float,
             adv_normalize_eps: Optional[float] = None
@@ -98,6 +98,6 @@ class RndRolloutSampler(RolloutSampler):
             self.int_values[i],
             self.int_returns[i],
             self.advantages[i],
-            self.targets[i],
+            None if self.targets is None else self.targets[i],
             self.rnn_init[i[:len(i) // self.nsteps]]
         )
