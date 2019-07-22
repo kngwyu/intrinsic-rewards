@@ -80,7 +80,7 @@ class IntRewardGenerator(HasStateDict):
             normalized_s = self.state_normalizer(s, self.ob_rms)
             error, self.cached_target = self.block.rewards(normalized_s)
         nsteps = s.size(0) // self.nworkers
-        rewards = error.view(nsteps, self.nworkers)
+        rewards = error.view(nsteps, self.nworkers, -1).mean(-1)
         rffs_int = torch.cat([self.rff.update(rewards[i]) for i in range(nsteps)])
         self.rff_rms.update(rffs_int.view(-1))
         rff_rms_std = self.rff_rms.std()
@@ -96,7 +96,7 @@ class IntRewardGenerator(HasStateDict):
         return normalized_rewards
 
     def aux_loss(self, state: Tensor, target: Optional[Tensor], use_ratio: float) -> Tensor:
-        s = self.preprocess(state)
-        mask = torch.empty(s.size(0)).uniform_() < use_ratio
-        normalized_s = self.state_normalizer(s[mask], self.ob_rms)
+        mask = torch.empty(state.size(0)).uniform_() < use_ratio
+        s = self.preprocess(state[mask])
+        normalized_s = self.state_normalizer(s, self.ob_rms)
         return self.block.loss(normalized_s, None if target is None else target[mask])

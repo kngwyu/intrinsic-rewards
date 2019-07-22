@@ -69,7 +69,7 @@ class RndIntRewardBlock(IntRewardBlock):
     def rewards(self, states: Tensor) -> Tuple[Tensor, Optional[Tensor]]:
         t = self.target(states)
         p = self.predictor(states)
-        return (t - p).pow(2).mean(dim=-1), t
+        return (t - p).pow(2), t
 
     def loss(self, states: Tensor, target: Optional[Tensor]) -> Tensor:
         return (target - self.predictor(states)).pow(2).mean()
