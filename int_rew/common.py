@@ -22,6 +22,11 @@ class IntRewardBlock(nn.Module, ABC):
     def input_dim(self) -> Sequence[int]:
         pass
 
+    @property
+    @abstractmethod
+    def output_dim(self) -> int:
+        pass
+
 
 class RewardForwardFilter(TensorStateDict):
     def __init__(self, gamma: float, nworkers: int, device: Device) -> None:

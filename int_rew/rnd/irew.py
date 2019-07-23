@@ -78,6 +78,10 @@ class RndIntRewardBlock(IntRewardBlock):
     def input_dim(self) -> Sequence[int]:
         return self.target.input_dim
 
+    @property
+    def output_dim(self) -> Sequence[int]:
+        return self.target.output_dim
+
     def parameters(self) -> Params:
         return self.predictor.parameters()
 
