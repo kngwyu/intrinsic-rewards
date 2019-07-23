@@ -25,14 +25,17 @@ class RndPpoAgent(PpoAgent):
             rnd_device=rnd_device,
         )
         self.irew_gen = config.int_reward_gen(rnd_device)
-        self.optimizer = config.optimizer(chain(self.net.parameters(), self.irew_gen.params()))
+        self.optimizer = config.optimizer(chain(
+            self.net.parameters(),
+            self.irew_gen.block.parameters()
+        ))
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
         nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
         self.intrew_stats = ExpStats()
-        mpi.setup_models(self.net, self.irew_gen.target, self.irew_gen.predictor)
+        mpi.setup_models(self.net, self.irew_gen.block)
         self.optimizer = mpi.setup_optimizer(self.optimizer)
 
     def members_to_save(self) -> Tuple[str, ...]:
