@@ -88,7 +88,6 @@ class IntRewardGenerator(HasStateDict):
         rewards = error.view(nsteps, self.nworkers, -1).mean(-1)
         rffs_int = torch.cat([self.rff.update(rewards[i]) for i in range(nsteps)])
         self.rff_rms.update(rffs_int.view(-1))
-        rff_rms_std = self.rff_rms.std()
         normalized_rewards = self.reward_normalizer(rewards, self.rff_rms)
         if reporter is not None:
             reporter.update({
@@ -96,7 +95,7 @@ class IntRewardGenerator(HasStateDict):
                 'intrew_mean': normalized_rewards.mean().item(),
                 'rffs_mean': rffs_int.mean().item(),
                 'rffs_rms_mean': self.rff_rms.mean.mean().item(),
-                'rffs_rms_std': rff_rms_std.mean().item(),
+                'rffs_rms_std': self.rff_rms.std().mean().item(),
             })
         return normalized_rewards
 
