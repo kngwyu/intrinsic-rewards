@@ -11,7 +11,7 @@ from typing import Callable, Optional, Tuple, Union
 class RndACNet(SharedBodyACNet):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.internal_critic_head = copy.deepcopy(self.critic_head)
+        self.int_critic_head = copy.deepcopy(self.critic_head)
 
     def values(
             self,
@@ -20,7 +20,7 @@ class RndACNet(SharedBodyACNet):
             masks: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor]:
         features = self._features(states, rnns, masks)[0]
-        ext_v, int_v = self.critic_head(features), self.internal_critic_head(features)
+        ext_v, int_v = self.critic_head(features), self.int_critic_head(features)
         return ext_v.squeeze(), int_v.squeeze()
 
     def forward(
@@ -32,7 +32,7 @@ class RndACNet(SharedBodyACNet):
         features, rnn_next = self._features(states, rnns, masks)
         policy = self.actor_head(features)
         ext_value = self.critic_head(features).squeeze()
-        int_value = self.internal_critic_head(features).squeeze()
+        int_value = self.int_critic_head(features).squeeze()
         return self.policy_dist(policy), ext_value, int_value, rnn_next
 
 
