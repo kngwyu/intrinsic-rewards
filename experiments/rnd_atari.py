@@ -5,7 +5,7 @@ from int_rew import rnd
 from torch.optim import Adam
 
 
-def config(game: str = 'Venture') -> rnd.RndConfig:
+def config(game: str = 'MontezumaRevenge') -> rnd.RndConfig:
     c = rnd.RndConfig()
     c.set_env(lambda: Atari(game, cfg=rnd.atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())

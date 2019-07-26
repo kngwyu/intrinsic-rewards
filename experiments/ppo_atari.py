@@ -8,7 +8,7 @@ from int_rew.rnd import atari_config
 from torch.optim import Adam
 
 
-def config(game: str = 'Venture') -> rainy.Config:
+def config(game: str = 'MontezumaRevenge') -> rainy.Config:
     c = rainy.Config()
     c.set_env(lambda: Atari(game, cfg=atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
