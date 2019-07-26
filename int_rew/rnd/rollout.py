@@ -20,7 +20,7 @@ class RndRolloutStorage(RolloutStorage[State]):
         self.int_rewards: List[Tensor] = []
         self.int_values: List[Tensor] = []
         self.int_gae = rnd_device.zeros((nsteps + 1, nworkers))
-        self.int_returns = rnd_device.zeros((nsteps, nworkers))
+        self.int_returns = rnd_device.zeros((nsteps + 1, nworkers))
         self.rnd_device = rnd_device
 
     def push_int_value(self, pval: Tensor) -> None:
@@ -33,6 +33,20 @@ class RndRolloutStorage(RolloutStorage[State]):
 
     def batch_int_values(self) -> Tensor:
         return torch.cat(self.values[:self.nsteps])
+
+    def calc_int_returns_nogae(
+            self,
+            next_value: Tensor,
+            rewards: Tensor,
+            gamma: float,
+            use_mask: bool
+    ) -> None:
+        self.int_values.append(self.rnd_device.tensor(next_value))
+        masks = self.masks if use_mask else self.rnd_device.ones(self.nsteps + 1)
+        self.int_gae.fill_(0.0)
+        for i in reversed(range(self.nsteps)):
+            self.int_returns[i] = self.int_returns[i + 1] * gamma * masks[i + 1] + rewards[i]
+            self.int_gae[i] = self.int_returns[i] - self.int_values[i]
 
     def calc_int_returns(
             self,

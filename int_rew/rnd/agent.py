@@ -92,11 +92,10 @@ class RndPpoAgent(PpoAgent):
             d['update-steps'] = self.update_steps
             self.logger.exp('intrew', d)
 
-        self.storage.calc_int_returns(
+        self.storage.calc_int_returns_nogae(
             next_int_value,
             int_rewards,
             cfg.int_discount_factor,
-            cfg.gae_lambda,
             cfg.int_use_mask,
         )
 
