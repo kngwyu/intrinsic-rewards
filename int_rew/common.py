@@ -8,6 +8,22 @@ from rainy.utils.rms import RunningMeanStdTorch
 from rainy.utils.state_dict import HasStateDict, TensorStateDict
 
 
+def preprocess_default(t: Tensor, device: Device) -> Tensor:
+    """Extract one channel and rescale to 0..255
+    """
+    return t.to(device.unwrapped)[:, -1].mul_(255.0)
+
+
+def normalize_s_default(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
+    t = t.reshape(-1, 1, *t.shape[-2:])
+    t.sub_(rms.mean.float()).div_(rms.std().float())
+    return torch.clamp(t, -5.0, 5.0)
+
+
+def normalize_r_default(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
+    return t.div(rms.std())
+
+
 class IntRewardBlock(nn.Module, ABC):
     @abstractmethod
     def rewards(self, states: Tensor) -> Tuple[Tensor, Optional[Tensor]]:
@@ -20,11 +36,6 @@ class IntRewardBlock(nn.Module, ABC):
     @property
     @abstractmethod
     def input_dim(self) -> Sequence[int]:
-        pass
-
-    @property
-    @abstractmethod
-    def output_dim(self) -> int:
         pass
 
 
