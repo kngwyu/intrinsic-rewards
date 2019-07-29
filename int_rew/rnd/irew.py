@@ -1,4 +1,3 @@
-import torch
 from torch import nn, Tensor
 from typing import Callable, List, Optional, Sequence, Tuple
 from rainy.net import Initializer, make_cnns, NetworkBlock
@@ -7,22 +6,7 @@ from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
 from ..common import IntRewardBlock, IntRewardGenerator
-
-
-def _preprocess_default(t: Tensor, device: Device) -> Tensor:
-    """Extract one channel and rescale to 0..255
-    """
-    return t.to(device.unwrapped)[:, -1].mul_(255.0)
-
-
-def _normalize_s_default(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
-    t = t.reshape(-1, 1, *t.shape[-2:])
-    t.sub_(rms.mean.float()).div_(rms.std().float())
-    return torch.clamp(t, -5.0, 5.0)
-
-
-def _normalize_r_default(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
-    return t.div(rms.std())
+from ..common import preprocess_default, normalize_r_default, normalize_s_default
 
 
 class RndConvBody(NetworkBlock):
@@ -78,10 +62,6 @@ class RndIntRewardBlock(IntRewardBlock):
     def input_dim(self) -> Sequence[int]:
         return self.target.input_dim
 
-    @property
-    def output_dim(self) -> Sequence[int]:
-        return self.target.output_dim
-
     def parameters(self) -> Params:
         return self.predictor.parameters()
 
@@ -90,9 +70,9 @@ def irew_gen_deafult(
         params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
         channels: Sequence[int] = (32, 64, 64),
         output_dim: int = 512,
-        preprocess: Callable[[Tensor, Device], Tensor] = _preprocess_default,
-        state_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = _normalize_s_default,
-        reward_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = _normalize_r_default,
+        preprocess: Callable[[Tensor, Device], Tensor] = preprocess_default,
+        state_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = normalize_s_default,
+        reward_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = normalize_r_default,
 ) -> Callable[['RndConfig', Device], IntRewardGenerator]:
     def _make_irew_gen(cfg: 'RndConfig', device: Device) -> IntRewardGenerator:
         input_dim = 1, *cfg.state_dim[1:]
