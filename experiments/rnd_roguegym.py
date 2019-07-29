@@ -5,24 +5,29 @@ from rogue_gym.envs import DungeonType, ImageSetting, RogueEnv, \
     StairRewardEnv, StairRewardParallel, StatusFlag
 from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
 from torch.optim import Adam
-from typing import Tuple
+from typing import Tuple, Union
 
 
-def rogue_config(seed_range: Tuple[int, int]) -> dict:
-    return {
+def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
+    common = {
         "width": 32,
         "height": 16,
-        "seed_range": seed_range,
         "hide_dungeon": True,
         "dungeon": {
             "style": "rogue",
             "room_num_x": 2,
             "room_num_y": 2,
         },
+
         "enemies": {
             "enemies": [],
         },
     }
+    if isinstance(seed, int):
+        common['seed'] = seed
+    else:
+        common['seed_range'] = seed
+    return common
 
 
 EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
@@ -59,7 +64,7 @@ def config() -> rnd.RndConfig:
         channels=(32, 64, 32),
         output_dim=256,
         preprocess=lambda t, device: t.to(device.unwrapped),
-        normalizer=lambda t, rms: t.reshape(-1, 1, *t.shape[-2:])
+        state_normalizer=lambda t, rms: t.reshape(-1, 1, *t.shape[-2:])
     )
     c.nworkers = 32
     c.nsteps = 125
