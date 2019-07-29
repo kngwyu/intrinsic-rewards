@@ -1,8 +1,7 @@
 import rainy
 import os
 from rainy.utils import cli
-from rogue_gym.envs import DungeonType, ImageSetting, RogueEnv, \
-    StairRewardEnv, StairRewardParallel, StatusFlag
+from rogue_gym.envs import DungeonType, ImageSetting, RogueEnv, ParallelRogueEnv, StatusFlag
 from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
 from torch.optim import Adam
 from typing import Tuple, Union
@@ -34,23 +33,19 @@ EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 def config() -> rainy.Config:
     c = rainy.Config()
-    c.set_parallel_env(lambda _env_gen, _num_w: ParallelRogueEnvExt(StairRewardParallel(
-        [rogue_config((1000, 1010))] * c.nworkers,
+    c.set_parallel_env(lambda _env_gen, _num_w: ParallelRogueEnvExt(ParallelRogueEnv(
+        [rogue_config((0, 10))] * c.nworkers,
         max_steps=500,
-        stair_reward=50.0,
         image_setting=EXPAND,
     )))
     c.max_steps = int(2e7) * 2
     c.save_freq = None
     c.eval_freq = None
-    c.eval_env = RogueEnvExt(StairRewardEnv(
-        RogueEnv(
-            config_dict=rogue_config((1000, 2000)),
-            mex_steps=500,
-            stair_reward=50.0,
-            image_setting=EXPAND,
-        ),
-        100.0
+    c.eval_env = RogueEnvExt(RogueEnv(
+        config_dict=rogue_config((1000, 2000)),
+        mex_steps=500,
+        stair_reward=50.0,
+        image_setting=EXPAND,
     ))
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
     CNN_PARAM = [(8, 1), (4, 1), (3, 1)]

@@ -23,6 +23,7 @@ class RndACNet(SharedBodyACNet):
         super().__init__(body, actor_head, critic_head, policy_dist, recurrent_body, device)
         self.int_critic_head = \
             copy.deepcopy(self.critic_head) if int_critic_head is None else int_critic_head
+        self.int_critic_head.to(device.unwrapped)
 
     def values(
             self,
