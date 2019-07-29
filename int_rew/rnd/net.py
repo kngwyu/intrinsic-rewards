@@ -1,7 +1,8 @@
 import copy
 from rainy.net.actor_critic import policy_init
 from rainy.net.policy import CategoricalDist, Policy, PolicyDist
-from rainy.net import DummyRnn, DqnConv, LinearHead, RnnBlock, RnnState, SharedBodyACNet
+from rainy.net import DummyRnn, DqnConv, LinearHead, \
+    NetworkBlock, RnnBlock, RnnState, SharedBodyACNet
 from rainy.prelude import Array
 from rainy.utils import Device
 from torch import Tensor
@@ -9,9 +10,19 @@ from typing import Callable, Optional, Tuple, Union
 
 
 class RndACNet(SharedBodyACNet):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.int_critic_head = copy.deepcopy(self.critic_head)
+    def __init__(
+            self,
+            body: NetworkBlock,
+            actor_head: NetworkBlock,
+            critic_head: NetworkBlock,
+            policy_dist: PolicyDist,
+            recurrent_body: RnnBlock = DummyRnn(),
+            device: Device = Device(),
+            int_critic_head: Optional[NetworkBlock] = None
+    ) -> None:
+        super().__init__(body, actor_head, critic_head, policy_dist, recurrent_body, device)
+        self.int_critic_head = \
+            copy.deepcopy(self.critic_head) if int_critic_head is None else int_critic_head
 
     def values(
             self,
