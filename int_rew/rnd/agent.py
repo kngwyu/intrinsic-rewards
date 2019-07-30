@@ -137,6 +137,6 @@ class RndPpoAgent(PpoAgent):
         self.clip_eps = self.clip_cooler()
         self.storage.reset()
 
-        p, v, iv, e = map(lambda x: x / float(self.num_updates), (p, v, iv, e))
+        p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
         self.report_loss(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)
         return states
