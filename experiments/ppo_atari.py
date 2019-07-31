@@ -24,7 +24,7 @@ def config(game: str = 'MontezumaRevenge') -> rainy.Config:
     c.use_gae = True
     c.nworkers = 128
     c.nsteps = 128
-    c.value_loss_weight = 0.5 * 0.5
+    c.value_loss_weight = 0.5
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.use_reward_monitor = True
@@ -37,4 +37,4 @@ def config(game: str = 'MontezumaRevenge') -> rainy.Config:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config(), rainy.agents.PpoAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, rainy.agents.PpoAgent, script_path=os.path.realpath(__file__))
