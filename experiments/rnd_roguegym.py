@@ -35,7 +35,7 @@ EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 def config() -> rnd.RndConfig:
     c = rnd.RndConfig()
     c.set_parallel_env(lambda _env_gen, _num_w: ParallelRogueEnvExt(ParallelRogueEnv(
-        [rogue_config((0, 10))] * c.nworkers,
+        [rogue_config(2)] * c.nworkers,
         max_steps=500,
         image_setting=EXPAND,
     )))
@@ -43,7 +43,7 @@ def config() -> rnd.RndConfig:
     c.save_freq = None
     c.eval_freq = None
     c.eval_env = RogueEnvExt(RogueEnv(
-        config_dict=rogue_config((1000, 2000)),
+        config_dict=rogue_config(2),
         mex_steps=500,
         stair_reward=50.0,
         image_setting=EXPAND,
