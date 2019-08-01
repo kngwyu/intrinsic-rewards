@@ -1,7 +1,7 @@
 import rainy
 from .agent import RndPpoAgent
 from .config import RndConfig
-from .irew import irew_gen_deafult, IntRewardGenerator
+from .irew import irew_gen_default, IntRewardGenerator
 from .net import rnd_ac_conv, RndACNet
 
 

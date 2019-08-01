@@ -66,7 +66,7 @@ class RndIntRewardBlock(IntRewardBlock):
         return self.predictor.parameters()
 
 
-def irew_gen_deafult(
+def irew_gen_default(
         params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
         channels: Sequence[int] = (32, 64, 64),
         output_dim: int = 512,
