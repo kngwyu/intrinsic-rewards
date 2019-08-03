@@ -24,7 +24,17 @@ def normalize_r_default(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
     return t.div(rms.std())
 
 
-class IntRewardBlock(nn.Module, ABC):
+class RewardForwardFilter(TensorStateDict):
+    def __init__(self, gamma: float, nworkers: int, device: Device) -> None:
+        self.gamma = gamma
+        self.nonepisodic_return = device.zeros(nworkers)
+
+    def update(self, prew: Tensor) -> Tensor:
+        self.nonepisodic_return.mul_(self.gamma).add_(prew)
+        return self.nonepisodic_return
+
+
+class UnsupervisedBlock(nn.Module, ABC):
     @abstractmethod
     def rewards(self, states: Tensor) -> Tuple[Tensor, Optional[Tensor]]:
         pass
@@ -39,20 +49,10 @@ class IntRewardBlock(nn.Module, ABC):
         pass
 
 
-class RewardForwardFilter(TensorStateDict):
-    def __init__(self, gamma: float, nworkers: int, device: Device) -> None:
-        self.gamma = gamma
-        self.nonepisodic_return = device.zeros(nworkers)
-
-    def update(self, prew: Tensor) -> Tensor:
-        self.nonepisodic_return.mul_(self.gamma).add_(prew)
-        return self.nonepisodic_return
-
-
-class IntRewardGenerator(HasStateDict):
+class UnsupervisedIRewGen(HasStateDict):
     def __init__(
             self,
-            intrew_block: IntRewardBlock,
+            intrew_block: UnsupervisedBlock,
             gamma: float,
             nworkers: int,
             device: Device,

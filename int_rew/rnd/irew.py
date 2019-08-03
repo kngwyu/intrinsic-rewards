@@ -5,8 +5,8 @@ from rainy.net.prelude import Params
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
-from ..common import IntRewardBlock, IntRewardGenerator
-from ..common import preprocess_default, normalize_r_default, normalize_s_default
+from ..unsupervised import UnsupervisedBlock, UnsupervisedIRewGen
+from ..unsupervised import preprocess_default, normalize_r_default, normalize_s_default
 
 
 class RndConvBody(NetworkBlock):
@@ -44,7 +44,7 @@ class RndConvBody(NetworkBlock):
         return self.fcs[-1](x)
 
 
-class RndIntRewardBlock(IntRewardBlock):
+class RndUnsupervisedBlock(UnsupervisedBlock):
     def __init__(self, predictor: NetworkBlock, target: NetworkBlock) -> None:
         super().__init__()
         self.target = target
@@ -73,8 +73,8 @@ def irew_gen_default(
         preprocess: Callable[[Tensor, Device], Tensor] = preprocess_default,
         state_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = normalize_s_default,
         reward_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor] = normalize_r_default,
-) -> Callable[['RndConfig', Device], IntRewardGenerator]:
-    def _make_irew_gen(cfg: 'RndConfig', device: Device) -> IntRewardGenerator:
+) -> Callable[['RndConfig', Device], UnsupervisedIRewGen]:
+    def _make_irew_gen(cfg: 'RndConfig', device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
         cnns, hidden = make_cnns(input_dim, params, channels)
         target = RndConvBody(cnns, [nn.Linear(hidden, output_dim)], input_dim)
@@ -85,8 +85,8 @@ def irew_gen_default(
         ]
         cnns, _ = make_cnns(input_dim, params, channels)
         predictor = RndConvBody(cnns, predictor_fc, input_dim)
-        return IntRewardGenerator(
-            RndIntRewardBlock(target, predictor),
+        return UnsupervisedIRewGen(
+            RndUnsupervisedBlock(target, predictor),
             cfg.int_discount_factor,
             cfg.nworkers,
             device,

@@ -1,5 +1,5 @@
 import rainy
-from .irew import irew_gen_default, IntRewardGenerator
+from .irew import irew_gen_default, UnsupervisedIRewGen
 from .net import rnd_ac_conv
 
 
@@ -24,5 +24,5 @@ class RndConfig(rainy.Config):
         self.initialize_stats = 50
         self._int_reward_gen = irew_gen_default()
 
-    def int_reward_gen(self, device: rainy.utils.Device) -> IntRewardGenerator:
+    def int_reward_gen(self, device: rainy.utils.Device) -> UnsupervisedIRewGen:
         return self._int_reward_gen(self, device)

@@ -10,7 +10,7 @@ from rainy.net import calc_cnn_hidden, Initializer
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
-from .common import IntRewardBlock, IntRewardGenerator, normalize_r_default, preprocess_default
+from .unsupervised import UnsupervisedBlock, UnsupervisedIRewGen, normalize_r_default, preprocess_default
 
 flatten = chain.from_iterable
 
@@ -142,7 +142,7 @@ class BetaVaeLoss(VaeLoss):
         return kld.mul(self.beta)
 
 
-class VaeIntRewardBlock(IntRewardBlock):
+class VaeUnsupervisedBlock(UnsupervisedBlock):
     def __init__(self, vae: ConvVae, loss_fn: VaeLoss = BetaVaeLoss(beta=0.0)) -> None:
         super().__init__()
         self.vae = vae
@@ -178,13 +178,13 @@ def irew_gen_vae(
         state_normalizer: callable = normalize_vae,
         reward_normalizer: callable = normalize_r_default,
         **kwargs
-) -> Callable[['RndConfig', Device], IntRewardGenerator]:
-    def _make_irew_gen(cfg: 'RndConfig', device: Device) -> IntRewardGenerator:
+) -> Callable[['RndConfig', Device], UnsupervisedIRewGen]:
+    def _make_irew_gen(cfg: 'RndConfig', device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
         vae = ConvVae(input_dim, **kwargs)
         loss_fn = vae_loss
-        return IntRewardGenerator(
-            VaeIntRewardBlock(vae, loss_fn),
+        return UnsupervisedIRewGen(
+            VaeUnsupervisedBlock(vae, loss_fn),
             cfg.int_discount_factor,
             cfg.nworkers,
             device,
