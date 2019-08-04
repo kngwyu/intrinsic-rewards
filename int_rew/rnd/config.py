@@ -22,6 +22,7 @@ class RndConfig(rainy.Config):
         self.auxloss_use_ratio = 0.5
         self.intrew_log_freq = 1000
         self.initialize_stats = 50
+        self.normalize_int_reward = True
         self._int_reward_gen = irew_gen_default()
 
     def int_reward_gen(self, device: rainy.utils.Device) -> UnsupervisedIRewGen:

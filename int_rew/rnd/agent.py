@@ -37,6 +37,8 @@ class RndPpoAgent(PpoAgent):
         self.intrew_stats = ExpStats()
         mpi.setup_models(self.net, self.irew_gen.block)
         self.optimizer = mpi.setup_optimizer(self.optimizer)
+        if not self.config.normalize_int_reward:
+            self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
 
     def members_to_save(self) -> Tuple[str, ...]:
         return 'net', 'clip_eps', 'clip_cooler', 'optimizer', 'irew_gen'
