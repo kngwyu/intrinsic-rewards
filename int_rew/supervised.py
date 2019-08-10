@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Callable, Optional, Sequence
 from rainy.utils import Device
 from rainy.utils.log import ExpStats
 from rainy.utils.rms import RunningMeanStdTorch
-from rainy.utils.state_dict import HasStateDict
 
 from .common import RewardForwardFilter
+from .unsupervised import UnsupervisedIRewGen
 
 
 def preprocess_default(t: Tensor, device: Device) -> Tensor:
@@ -26,13 +26,13 @@ def normalize_r_default(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
     return t.div(rms.std())
 
 
-class UnsupervisedBlock(nn.Module, ABC):
+class SupervisedBlock(nn.Module, ABC):
     @abstractmethod
-    def rewards(self, states: Tensor) -> Tuple[Tensor, Optional[Tensor]]:
+    def rewards(self, state: Tensor, target: Tensor, action: Optional[Tensor] = None) -> Tensor:
         pass
 
     @abstractmethod
-    def loss(self, states: Tensor, target: Optional[Tensor]) -> Tensor:
+    def loss(self, state: Tensor, target: Tensor, action: Optional[Tensor] = None) -> Tensor:
         pass
 
     @property
@@ -41,10 +41,10 @@ class UnsupervisedBlock(nn.Module, ABC):
         pass
 
 
-class UnsupervisedIRewGen(HasStateDict):
+class SupervisedIRewGen(UnsupervisedIRewGen):
     def __init__(
             self,
-            intrew_block: UnsupervisedBlock,
+            intrew_block: SupervisedBlock,
             gamma: float,
             nworkers: int,
             device: Device,
@@ -64,35 +64,15 @@ class UnsupervisedIRewGen(HasStateDict):
         self._preprocess = preprocess
         self.state_normalizer = state_normalizer
         self.reward_normalizer = reward_normalizer
+        self.normalize_reward = True
 
-    def state_dict(self) -> dict:
-        return {
-            'block': self.block.state_dict(),
-            'ob_rms': self.ob_rms.state_dict(),
-            'rff': self.rff.state_dict(),
-            'rff_rms': self.rff_rms.state_dict(),
-        }
-
-    def load_state_dict(self, d: dict) -> None:
-        for key in d.keys():
-            obj = getattr(self, key)
-            obj.load_state_dict(d[key])
-
-    def preprocess(self, t: Tensor) -> Tensor:
-        return self._preprocess(t, self.device)
-
-    def _normalize_reward(self, rewards: Tensor, nsteps: int, reporter: dict) -> Tensor:
-        rffs_int = torch.cat([self.rff.update(rewards[i]) for i in range(nsteps)])
-        self.rff_rms.update(rffs_int.view(-1))
-        normalized_rewards = self.reward_normalizer(rewards, self.rff_rms)
-        reporter.update(
-            intrew_mean=normalized_rewards.mean().item(),
-            rffs_rms_mean=self.rff_rms.mean.mean().item(),
-            rffs_rms_std=self.rffs_rms.std().mean().item(),
-        )
-        return normalized_rewards
-
-    def gen_rewards(self, state: Tensor, reporter: Optional[ExpStats] = None) -> Tensor:
+    def gen_rewards(
+            self,
+            state: Tensor,
+            target: Tensor,
+            action: Optional[Tensor],
+            reporter: Optional[ExpStats] = None
+    ) -> Tensor:
         s = self.preprocess(state)
         self.ob_rms.update(s.double().view(-1, *self.ob_rms.mean.shape))
         with torch.no_grad():
@@ -107,7 +87,13 @@ class UnsupervisedIRewGen(HasStateDict):
             reporter.update(report_dict)
         return rewards
 
-    def aux_loss(self, state: Tensor, target: Optional[Tensor], use_ratio: float) -> Tensor:
+    def aux_loss(
+            self,
+            state: Tensor,
+            target: Tensor,
+            action: Optional[Tensor],
+            use_ratio: float
+    ) -> Tensor:
         mask = torch.empty(state.size(0)).uniform_() < use_ratio
         s = self.preprocess(state[mask])
         normalized_s = self.state_normalizer(s, self.ob_rms)
