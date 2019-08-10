@@ -8,7 +8,7 @@ editable = true
 path = '.'
 
 [packages]
-torch = "==1.1.0"
+torch = "==1.2.0"
 rainy = "==0.3.0"
 # rainy = { editable = true, path = '../Rainy' }
 rogue-gym = "==0.0.2"
