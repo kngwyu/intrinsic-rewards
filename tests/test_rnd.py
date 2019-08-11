@@ -7,6 +7,7 @@ import torch
 from numpy.testing import assert_array_almost_equal
 
 from int_rew import rnd
+from int_rew.rollout import IntValueRolloutStorage
 
 
 def config() -> rnd.RndConfig:
@@ -39,7 +40,7 @@ def test_storage_and_irew() -> None:
     ACTION_DIM = 3
     NWORKERS = penv.num_envs
     states = penv.reset()
-    storage = rnd.rollout.RndRolloutStorage(
+    storage = IntValueRolloutStorage(
         NSTEPS,
         NWORKERS,
         Device(),
