@@ -9,22 +9,23 @@ import torch
 from torch import Tensor
 from typing import Tuple
 from .config import RndConfig
-from .rollout import RndRolloutSampler, RndRolloutStorage
+from .rollout import RndRolloutSampler
+from ..rollout import IntValueRolloutStorage
 
 
 class RndPpoAgent(PpoAgent):
     def __init__(self, config: RndConfig) -> None:
         super().__init__(config)
         self.net = config.net('actor-critic')
-        rnd_device = config.device.split()
-        self.storage = RndRolloutStorage(
+        another_device = config.device.split()
+        self.storage = IntValueRolloutStorage(
             config.nsteps,
             config.nworkers,
             config.device,
             config.discount_factor,
-            rnd_device=rnd_device,
+            another_device=another_device,
         )
-        self.irew_gen = config.int_reward_gen(rnd_device)
+        self.irew_gen = config.int_reward_gen(another_device)
         self.optimizer = config.optimizer(chain(
             self.net.parameters(),
             self.irew_gen.block.parameters()
