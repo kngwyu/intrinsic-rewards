@@ -7,7 +7,7 @@ from rainy.utils.log import ExpStats
 from rainy.utils.rms import RunningMeanStdTorch
 from rainy.utils.state_dict import HasStateDict
 
-from .common import RewardForwardFilter
+from .rff import RewardForwardFilter
 
 
 def preprocess_default(t: Tensor, device: Device) -> Tensor:
@@ -50,7 +50,8 @@ class UnsupervisedIRewGen(HasStateDict):
             device: Device,
             preprocess: Callable[[Tensor, Device], Tensor],
             state_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor],
-            reward_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor]
+            reward_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor],
+            normalize_reward: bool = True
     ) -> None:
         super().__init__()
         self.block = intrew_block
@@ -64,6 +65,7 @@ class UnsupervisedIRewGen(HasStateDict):
         self._preprocess = preprocess
         self.state_normalizer = state_normalizer
         self.reward_normalizer = reward_normalizer
+        self.normalize_reward = normalize_reward
 
     def state_dict(self) -> dict:
         return {
@@ -87,8 +89,8 @@ class UnsupervisedIRewGen(HasStateDict):
         normalized_rewards = self.reward_normalizer(rewards, self.rff_rms)
         reporter.update(
             intrew_mean=normalized_rewards.mean().item(),
-            rffs_rms_mean=self.rff_rms.mean.mean().item(),
-            rffs_rms_std=self.rffs_rms.std().mean().item(),
+            rff_rms_mean=self.rff_rms.mean.mean().item(),
+            rff_rms_std=self.rff_rms.std().mean().item(),
         )
         return normalized_rewards
 

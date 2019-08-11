@@ -9,7 +9,7 @@ from torch import Tensor
 from typing import Callable, Optional, Tuple, Union
 
 
-class RndACNet(SharedBodyACNet):
+class IntValueACNet(SharedBodyACNet):
     def __init__(
             self,
             body: NetworkBlock,
@@ -48,18 +48,25 @@ class RndACNet(SharedBodyACNet):
         return self.policy_dist(policy), ext_value, int_value, rnn_next
 
 
-def rnd_ac_conv(
+def iv_ac_conv(
         policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
         hidden_channels: Tuple[int, int, int] = (32, 64, 32),
         output_dim: int = 256,
         rnn: Callable[[int, int], RnnBlock] = DummyRnn,
         **kwargs
-) -> Callable[[Tuple[int, int, int], int, Device], RndACNet]:
-    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> RndACNet:
+) -> Callable[[Tuple[int, int, int], int, Device], IntValueACNet]:
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> IntValueACNet:
         body = DqnConv(state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs)
         policy_dist = policy(action_dim, device)
         rnn_ = rnn(body.output_dim, body.output_dim)
         ac_head = LinearHead(body.output_dim, policy_dist.input_dim, policy_init())
         cr_head = LinearHead(body.output_dim, 1)
-        return RndACNet(body, ac_head, cr_head, policy_dist, recurrent_body=rnn_, device=device)
+        return IntValueACNet(
+            body,
+            ac_head,
+            cr_head,
+            policy_dist,
+            recurrent_body=rnn_,
+            device=device
+        )
     return _net  # type: ignore

@@ -2,7 +2,7 @@ import rainy
 from .agent import RndPpoAgent
 from .config import RndConfig
 from .irew import irew_gen_default, UnsupervisedIRewGen
-from .net import rnd_ac_conv, RndACNet
+from .net import RndACNet
 
 
 def atari_config() -> rainy.envs.AtariConfig:

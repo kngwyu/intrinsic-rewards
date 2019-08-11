@@ -6,7 +6,7 @@ from rainy.utils import Device
 from rainy.utils.log import ExpStats
 from rainy.utils.rms import RunningMeanStdTorch
 
-from .common import RewardForwardFilter
+from .rff import RewardForwardFilter
 from .unsupervised import UnsupervisedIRewGen
 
 

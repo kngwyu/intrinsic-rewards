@@ -1,6 +1,6 @@
 import rainy
 from .irew import irew_gen_default, UnsupervisedIRewGen
-from .net import rnd_ac_conv
+from ..net import iv_ac_conv
 
 
 class RndConfig(rainy.Config):
@@ -13,7 +13,7 @@ class RndConfig(rainy.Config):
         self.ppo_epochs = 4
         self.ppo_clip = 0.1
         self.use_gae = True
-        self.set_net_fn('actor-critic', rnd_ac_conv())
+        self.set_net_fn('actor-critic', iv_ac_conv())
         # RND specific parameters
         self.adv_weight = 2.0
         self.int_adv_weight = 1.0

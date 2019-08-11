@@ -39,7 +39,7 @@ class RndPpoAgent(PpoAgent):
         self.optimizer = mpi.setup_optimizer(self.optimizer)
         if not self.config.normalize_int_reward:
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
-            self.irew_gen.normalize_reward = True
+            self.irew_gen.normalize_reward = False
 
     def members_to_save(self) -> Tuple[str, ...]:
         return 'net', 'clip_eps', 'clip_cooler', 'optimizer', 'irew_gen'

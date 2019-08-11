@@ -10,7 +10,8 @@ from rainy.net import calc_cnn_hidden, Initializer
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
-from .unsupervised import UnsupervisedBlock, UnsupervisedIRewGen, normalize_r_default, preprocess_default
+from .unsupervised import UnsupervisedBlock, \
+    UnsupervisedIRewGen, normalize_r_default, preprocess_default
 
 flatten = chain.from_iterable
 

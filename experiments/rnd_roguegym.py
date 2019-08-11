@@ -1,4 +1,4 @@
-from int_rew import rnd
+from int_rew import iv_ac_conv, rnd
 import os
 from rainy.utils import cli
 from rogue_gym.envs import DungeonType, ImageSetting, RogueEnv, ParallelRogueEnv, StatusFlag
@@ -50,10 +50,7 @@ def config() -> rnd.RndConfig:
     ))
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
     CNN_PARAM = [(8, 1), (4, 1), (3, 1)]
-    c.set_net_fn('actor-critic', rnd.net.rnd_ac_conv(
-        kernel_and_strides=CNN_PARAM,
-        output_dim=256,
-    ))
+    c.set_net_fn('actor-critic', iv_ac_conv(kernel_and_strides=CNN_PARAM, output_dim=256))
     c._int_reward_gen = rnd.irew.irew_gen_default(
         params=CNN_PARAM,
         channels=(32, 64, 32),
