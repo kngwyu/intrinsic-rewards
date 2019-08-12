@@ -10,7 +10,8 @@ from rainy.net import calc_cnn_hidden, Initializer
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
-from .unsupervised import UnsupervisedBlock, UnsupervisedIRewGen, normalize_r_default, preprocess_default
+from .unsupervised import UnsupervisedBlock, UnsupervisedIRewGen,\
+    normalize_r_default, preprocess_default
 
 flatten = chain.from_iterable
 
@@ -129,7 +130,7 @@ class VaeLoss(ABC):
 
 
 class BetaVaeLoss(VaeLoss):
-    def __init__(self, beta: float = 4.0, decoder_type: str = 'gaussian') -> None:
+    def __init__(self, beta: float = 1.0, decoder_type: str = 'gaussian') -> None:
         self._recons_fn = _recons_fn(decoder_type)
         self.beta = beta
 
@@ -143,7 +144,7 @@ class BetaVaeLoss(VaeLoss):
 
 
 class VaeUnsupervisedBlock(UnsupervisedBlock):
-    def __init__(self, vae: ConvVae, loss_fn: VaeLoss = BetaVaeLoss(beta=0.0)) -> None:
+    def __init__(self, vae: ConvVae, loss_fn: VaeLoss = BetaVaeLoss(beta=1.0)) -> None:
         super().__init__()
         self.vae = vae
         self.loss_fn = loss_fn
@@ -173,7 +174,7 @@ def normalize_vae(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
 
 
 def irew_gen_vae(
-        vae_loss: VaeLoss = BetaVaeLoss(beta=0.0),
+        vae_loss: VaeLoss = BetaVaeLoss(beta=1.0),
         preprocess: callable = preprocess_default,
         state_normalizer: callable = normalize_vae,
         reward_normalizer: callable = normalize_r_default,
