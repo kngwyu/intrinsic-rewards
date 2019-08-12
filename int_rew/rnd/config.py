@@ -1,3 +1,4 @@
+from torch import optim
 import rainy
 from .irew import irew_gen_default, UnsupervisedIRewGen
 from .net import rnd_ac_conv
@@ -23,6 +24,7 @@ class RndConfig(rainy.Config):
         self.intrew_log_freq = 1000
         self.initialize_stats = 50
         self.normalize_int_reward = True
+        self.rnd_optimizer = lambda params: optim.Adam(params, lr=1.0e-5)
         self._int_reward_gen = irew_gen_default()
 
     def int_reward_gen(self, device: rainy.utils.Device) -> UnsupervisedIRewGen:

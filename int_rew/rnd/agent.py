@@ -1,4 +1,3 @@
-from itertools import chain
 import numpy as np
 from rainy.agents import PpoAgent
 from rainy.lib import mpi
@@ -26,10 +25,7 @@ class RndPpoAgent(PpoAgent):
             another_device=another_device,
         )
         self.irew_gen = config.int_reward_gen(another_device)
-        self.optimizer = config.optimizer(chain(
-            self.net.parameters(),
-            self.irew_gen.block.parameters()
-        ))
+        self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
@@ -38,6 +34,8 @@ class RndPpoAgent(PpoAgent):
         self.intrew_stats = ExpStats()
         mpi.setup_models(self.net, self.irew_gen.block)
         self.optimizer = mpi.setup_optimizer(self.optimizer)
+        self.rnd_optimizer = config.rnd_optimizer(self.irew_gen.block.parameters())
+        self.rnd_optimizer = mpi.setup_optimizer(self.rnd_optimizer)
         if not self.config.normalize_int_reward:
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
 
@@ -126,13 +124,16 @@ class RndPpoAgent(PpoAgent):
                  + self.config.value_loss_weight * value_loss
                  + self.config.value_loss_weight * int_value_loss
                  - self.config.entropy_weight * entropy_loss).backward()
+                mpi.clip_and_step(self.net, self.config.grad_clip, self.optimizer)
+
+                self.rnd_optimizer.zero_grad()
                 aux_loss = self.irew_gen.aux_loss(
                     batch.states,
                     batch.targets,
                     cfg.auxloss_use_ratio
                 )
                 aux_loss.backward()
-                mpi.clip_and_step(self.net, self.config.grad_clip, self.optimizer)
+                mpi.clip_and_step(self.irew_gen.block, self.config.grad_clip, self.rnd_optimizer)
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
                 iv += int_value_loss.item()
 
