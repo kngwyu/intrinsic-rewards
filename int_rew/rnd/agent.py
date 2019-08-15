@@ -125,17 +125,14 @@ class RndPpoAgent(PpoAgent):
                  + self.config.value_loss_weight * int_value_loss
                  - self.config.entropy_weight * entropy_loss).backward()
                 mpi.clip_and_step(self.net, self.config.grad_clip, self.optimizer)
-
-                self.rnd_optimizer.zero_grad()
-                aux_loss = self.irew_gen.aux_loss(
-                    batch.states,
-                    batch.targets,
-                    cfg.auxloss_use_ratio
-                )
-                aux_loss.backward()
-                mpi.clip_and_step(self.irew_gen.block, self.config.grad_clip, self.rnd_optimizer)
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
                 iv += int_value_loss.item()
+
+        for batch in sampler:
+            self.rnd_optimizer.zero_grad()
+            aux_loss = self.irew_gen.aux_loss(batch.states, batch.targets, 1.0)
+            aux_loss.backward()
+            mpi.clip_and_step(self.irew_gen.block, self.config.grad_clip, self.rnd_optimizer)
 
         self.lr_cooler.lr_decay(self.optimizer)
         self.clip_eps = self.clip_cooler()
