@@ -132,7 +132,7 @@ class RndPpoAgent(PpoAgent):
                     cfg.auxloss_use_ratio
                 )
                 aux_loss.backward()
-                mpi.clip_and_step(self.net, self.config.grad_clip, self.optimizer)
+                mpi.clip_and_step(self.net.parameters(), self.config.grad_clip, self.optimizer)
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
                 iv += int_value_loss.item()
 

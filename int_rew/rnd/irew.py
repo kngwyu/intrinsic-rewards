@@ -1,7 +1,7 @@
 from torch import nn, Tensor
 from typing import Callable, List, Optional, Sequence, Tuple
 from rainy.net import Initializer, make_cnns, NetworkBlock
-from rainy.net.prelude import Params
+from rainy.prelude import Params
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 

@@ -13,7 +13,7 @@ def config(game: str = 'MontezumaRevenge') -> rnd.RndConfig:
     c.max_steps = int(1e8) * 6
     c.grad_clip = 1.0
     # ppo params
-    c.nworkers = 64
+    c.nworkers = 64 // 8
     c.nsteps = 128
     c.value_loss_weight = 0.5
     c.gae_lambda = 0.95
