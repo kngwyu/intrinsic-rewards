@@ -9,7 +9,7 @@ from ..rollout import IntValueRolloutStorage
 
 class TunedRndPpoAgent(RndPpoAgent):
     def __init__(self, config: RndConfig) -> None:
-        PpoAgent.__init__(config)
+        PpoAgent.__init__(self, config)
         self.net = config.net('actor-critic')
         another_device = config.device.split()
         self.storage = IntValueRolloutStorage(
@@ -51,7 +51,7 @@ class TunedRndPpoAgent(RndPpoAgent):
                  + self.config.value_loss_weight * value_loss
                  + self.config.value_loss_weight * int_value_loss
                  - self.config.entropy_weight * entropy_loss).backward()
-                mpi.clip_and_step(self.net, self.config.grad_clip, self.optimizer)
+                mpi.clip_and_step(self.net.parameters(), self.config.grad_clip, self.optimizer)
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
                 iv += int_value_loss.item()
 
@@ -59,7 +59,11 @@ class TunedRndPpoAgent(RndPpoAgent):
             self.rnd_optimizer.zero_grad()
             aux_loss = self.irew_gen.aux_loss(batch.states, batch.targets, 1.0)
             aux_loss.backward()
-            mpi.clip_and_step(self.irew_gen.block, self.config.grad_clip, self.rnd_optimizer)
+            mpi.clip_and_step(
+                self.irew_gen.block.parameters(),
+                self.config.grad_clip,
+                self.rnd_optimizer
+            )
 
         p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
         self.report_loss(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)
