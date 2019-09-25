@@ -1,0 +1,69 @@
+from rainy.agents import PpoAgent
+from rainy.lib import mpi
+from rainy.utils.log import ExpStats
+from .agent import RndPpoAgent
+from .config import RndConfig
+from .rollout import RndRolloutSampler
+from ..rollout import IntValueRolloutStorage
+
+
+class TunedRndPpoAgent(RndPpoAgent):
+    def __init__(self, config: RndConfig) -> None:
+        PpoAgent.__init__(self, config)
+        self.net = config.net('actor-critic')
+        another_device = config.device.split()
+        self.storage = IntValueRolloutStorage(
+            config.nsteps,
+            config.nworkers,
+            config.device,
+            config.discount_factor,
+            another_device=another_device,
+        )
+        self.irew_gen = config.int_reward_gen(another_device)
+        self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
+        self.clip_cooler = config.clip_cooler()
+        self.clip_eps = config.ppo_clip
+        nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
+        self.num_updates = self.config.ppo_epochs * nbatchs
+        self.intrew_stats = ExpStats()
+
+        mpi.setup_models(self.net, self.irew_gen.block)
+        self.optimizer = mpi.setup_optimizer(config.optimizer(self.net.parameters()))
+        self.rnd_optimizer = mpi.setup_optimizer(
+            config.optimizer(self.irew_gen.block.parameters(), key='rnd_separated')
+        )
+        if not self.config.normalize_int_reward:
+            self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
+
+    def _update_policy(self, sampler: RndRolloutSampler) -> None:
+        p, v, iv, e = (0.0,) * 4
+        for _ in range(self.config.ppo_epochs):
+            for batch in sampler:
+                policy, value, int_value, _ = \
+                    self.net(batch.states, batch.rnn_init, batch.masks)
+                policy.set_action(batch.actions)
+                policy_loss = self._policy_loss(policy, batch.advantages, batch.old_log_probs)
+                value_loss = self._rnd_value_loss(value, batch.returns)
+                int_value_loss = self._rnd_value_loss(int_value, batch.int_returns)
+                entropy_loss = policy.entropy().mean()
+                self.optimizer.zero_grad()
+                (policy_loss
+                 + self.config.value_loss_weight * value_loss
+                 + self.config.value_loss_weight * int_value_loss
+                 - self.config.entropy_weight * entropy_loss).backward()
+                mpi.clip_and_step(self.net.parameters(), self.config.grad_clip, self.optimizer)
+                p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
+                iv += int_value_loss.item()
+
+        for batch in sampler:
+            self.rnd_optimizer.zero_grad()
+            aux_loss = self.irew_gen.aux_loss(batch.states, batch.targets, 1.0)
+            aux_loss.backward()
+            mpi.clip_and_step(
+                self.irew_gen.block.parameters(),
+                self.config.grad_clip,
+                self.rnd_optimizer
+            )
+
+        p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
+        self.report_loss(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)

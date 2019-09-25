@@ -27,4 +27,4 @@ def config(game: str = 'MontezumaRevenge') -> rnd.RndConfig:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config, rnd.RndPpoAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, rnd.TunedRndPpoAgent, script_path=os.path.realpath(__file__))
