@@ -24,13 +24,13 @@ class RndRolloutBatch(NamedTuple):
 
 class RndRolloutSampler(RolloutSampler):
     def __init__(
-            self,
-            sampler: RolloutSampler,
-            storage: IntValueRolloutStorage,
-            target: Optional[Tensor],
-            ext_coeff: float,
-            int_coeff: float,
-            adv_normalize_eps: Optional[float] = None
+        self,
+        sampler: RolloutSampler,
+        storage: IntValueRolloutStorage,
+        target: Optional[Tensor],
+        ext_coeff: float,
+        int_coeff: float,
+        adv_normalize_eps: Optional[float] = None,
     ) -> None:
         self.__dict__.update(sampler.__dict__)
         self.int_returns = storage.int_returns.flatten()
@@ -53,5 +53,5 @@ class RndRolloutSampler(RolloutSampler):
             self.int_returns[i],
             self.advantages[i],
             None if self.targets is None else self.targets[i],
-            self.rnn_init[i[:len(i) // self.nsteps]]
+            self.rnn_init[i[: len(i) // self.nsteps]],
         )

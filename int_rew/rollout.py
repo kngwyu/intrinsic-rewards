@@ -8,12 +8,12 @@ from typing import List
 
 class IntValueRolloutStorage(RolloutStorage[State]):
     def __init__(
-            self,
-            nsteps: int,
-            nworkers: int,
-            device: Device,
-            gamma: float,
-            another_device: Device = Device(use_cpu=True)
+        self,
+        nsteps: int,
+        nworkers: int,
+        device: Device,
+        gamma: float,
+        another_device: Device = Device(use_cpu=True),
     ) -> None:
         super().__init__(nsteps, nworkers, device)
         self.int_rewards: List[Tensor] = []
@@ -31,15 +31,15 @@ class IntValueRolloutStorage(RolloutStorage[State]):
         self.int_values.clear()
 
     def batch_int_values(self) -> Tensor:
-        return torch.cat(self.values[:self.nsteps])
+        return torch.cat(self.values[: self.nsteps])
 
     def calc_int_returns(
-            self,
-            next_value: Tensor,
-            rewards: Tensor,
-            gamma: float,
-            lambda_: float,
-            use_mask: bool = False,
+        self,
+        next_value: Tensor,
+        rewards: Tensor,
+        gamma: float,
+        lambda_: float,
+        use_mask: bool = False,
     ) -> None:
         """Calcurates the GAE return of pseudo rewards
         """
@@ -47,7 +47,12 @@ class IntValueRolloutStorage(RolloutStorage[State]):
         masks = self.masks if use_mask else self.another_device.ones(self.nsteps + 1)
         self.int_gae.fill_(0.0)
         for i in reversed(range(self.nsteps)):
-            td_error = rewards[i] + \
-                gamma * self.int_values[i + 1] * masks[i + 1] - self.int_values[i]
-            self.int_gae[i] = td_error + gamma * lambda_ * masks[i] * self.int_gae[i + 1]
+            td_error = (
+                rewards[i]
+                + gamma * self.int_values[i + 1] * masks[i + 1]
+                - self.int_values[i]
+            )
+            self.int_gae[i] = (
+                td_error + gamma * lambda_ * masks[i] * self.int_gae[i + 1]
+            )
             self.int_returns[i] = self.int_gae[i] + self.int_values[i]

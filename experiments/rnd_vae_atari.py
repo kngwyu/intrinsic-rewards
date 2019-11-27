@@ -5,7 +5,7 @@ from int_rew import rnd, vae
 from torch.optim import Adam
 
 
-def config(game: str = 'MontezumaRevenge') -> rnd.RndConfig:
+def config(game: str = "MontezumaRevenge") -> rnd.RndConfig:
     c = rnd.RndConfig()
     c.set_env(lambda: Atari(game, cfg=rnd.atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
@@ -29,5 +29,5 @@ def config(game: str = 'MontezumaRevenge') -> rnd.RndConfig:
     return c
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli.run_cli(config, rnd.RndPpoAgent, script_path=os.path.realpath(__file__))

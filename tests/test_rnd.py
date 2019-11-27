@@ -14,7 +14,7 @@ def config() -> rnd.RndConfig:
     c = rnd.RndConfig()
     c.nworkers = 4
     c.nsteps = 4
-    c.set_env(lambda: Atari('Venture', cfg=rnd.atari_config(), frame_stack=False))
+    c.set_env(lambda: Atari("Venture", cfg=rnd.atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
     return c
 
@@ -23,12 +23,12 @@ def test_save_and_load() -> None:
     agent = rnd.RndPpoAgent(config())
     agent.irew_gen.gen_rewards(torch.randn(4 * 4, 2, 84, 84))
     nonep = agent.irew_gen.rff_rms.mean.cpu().numpy()
-    agent.save('agent.pth')
+    agent.save("agent.pth")
     agent.close()
     c = config()
     c.device = Device(use_cpu=True)
     agent = rnd.RndPpoAgent(c)
-    agent.load('agent.pth')
+    agent.load("agent.pth")
     nonep_new = agent.irew_gen.rff_rms.mean.cpu().numpy()
     assert_array_almost_equal(nonep, nonep_new)
     agent.close()
@@ -41,11 +41,7 @@ def test_storage_and_irew() -> None:
     NWORKERS = penv.num_envs
     states = penv.reset()
     storage = IntValueRolloutStorage(
-        NSTEPS,
-        NWORKERS,
-        Device(),
-        0.99,
-        Device(use_cpu=True)
+        NSTEPS, NWORKERS, Device(), 0.99, Device(use_cpu=True)
     )
     storage.set_initial_state(states)
     policy_head = CategoricalDist(ACTION_DIM)
@@ -67,7 +63,7 @@ def test_storage_and_irew() -> None:
         storage,
         torch.randn(NSTEPS * NWORKERS),
         1.0,
-        1.0
+        1.0,
     )
     assert sampler.int_returns.shape == batch_shape
     assert sampler.int_values.shape == batch_shape

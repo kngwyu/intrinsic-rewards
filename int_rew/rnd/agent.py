@@ -16,7 +16,7 @@ from ..rollout import IntValueRolloutStorage
 class RndPpoAgent(PpoAgent):
     def __init__(self, config: RndConfig) -> None:
         super().__init__(config)
-        self.net = config.net('actor-critic')
+        self.net = config.net("actor-critic")
         another_device = config.device.split()
         self.storage = IntValueRolloutStorage(
             config.nsteps,
@@ -26,14 +26,15 @@ class RndPpoAgent(PpoAgent):
             another_device=another_device,
         )
         self.irew_gen = config.int_reward_gen(another_device)
-        self.optimizer = config.optimizer(chain(
-            self.net.parameters(),
-            self.irew_gen.block.parameters()
-        ))
-        self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
+        self.optimizer = config.optimizer(
+            chain(self.net.parameters(), self.irew_gen.block.parameters())
+        )
+        self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]["lr"])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
-        nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
+        nbatchs = (
+            self.config.nsteps * self.config.nworkers
+        ) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
         self.intrew_stats = ExpStats()
         mpi.setup_models(self.net, self.irew_gen.block)
@@ -42,16 +43,20 @@ class RndPpoAgent(PpoAgent):
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return 'net', 'clip_eps', 'clip_cooler', 'optimizer', 'irew_gen'
+        return "net", "clip_eps", "clip_cooler", "optimizer", "irew_gen"
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
             policy, value, pvalue, rnns = self.net(*self._network_in(states))
-        next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
+        next_states, rewards, done, info = self.penv.step(
+            policy.action().squeeze().cpu().numpy()
+        )
         self.episode_length += 1
         self.rewards += rewards
         self.report_reward(done, info)
-        self.storage.push(next_states, rewards, done, rnn_state=rnns, policy=policy, value=value)
+        self.storage.push(
+            next_states, rewards, done, rnn_state=rnns, policy=policy, value=value
+        )
         self.storage.push_int_value(pvalue)
         return next_states
 
@@ -66,33 +71,44 @@ class RndPpoAgent(PpoAgent):
             self.storage.push(states, rewards, done)
             if (i + 1) % self.config.nsteps == 0:
                 s = self.irew_gen.preprocess(self.storage.batch_states(self.penv))
-                self.irew_gen.ob_rms.update(s.double().view(-1, *self.penv.state_dim[1:]))
+                self.irew_gen.ob_rms.update(
+                    s.double().view(-1, *self.penv.state_dim[1:])
+                )
                 self.storage.reset()
 
     def _update_policy(self, sampler: RndRolloutSampler) -> None:
         p, v, iv, e = (0.0,) * 4
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:
-                policy, value, int_value, _ = \
-                    self.net(batch.states, batch.rnn_init, batch.masks)
+                policy, value, int_value, _ = self.net(
+                    batch.states, batch.rnn_init, batch.masks
+                )
                 policy.set_action(batch.actions)
-                policy_loss = self._policy_loss(policy, batch.advantages, batch.old_log_probs)
+                policy_loss = self._policy_loss(
+                    policy, batch.advantages, batch.old_log_probs
+                )
                 value_loss = self._rnd_value_loss(value, batch.returns)
                 int_value_loss = self._rnd_value_loss(int_value, batch.int_returns)
                 entropy_loss = policy.entropy().mean()
                 self.optimizer.zero_grad()
-                (policy_loss
-                 + self.config.value_loss_weight * value_loss
-                 + self.config.value_loss_weight * int_value_loss
-                 - self.config.entropy_weight * entropy_loss).backward()
+                (
+                    policy_loss
+                    + self.config.value_loss_weight * value_loss
+                    + self.config.value_loss_weight * int_value_loss
+                    - self.config.entropy_weight * entropy_loss
+                ).backward()
                 aux_loss = self.irew_gen.aux_loss(
-                    batch.states,
-                    batch.targets,
-                    self.config.auxloss_use_ratio
+                    batch.states, batch.targets, self.config.auxloss_use_ratio
                 )
                 aux_loss.backward()
-                mpi.clip_and_step(self.net.parameters(), self.config.grad_clip, self.optimizer)
-                p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
+                mpi.clip_and_step(
+                    self.net.parameters(), self.config.grad_clip, self.optimizer
+                )
+                p, v, e = (
+                    p + policy_loss.item(),
+                    v + value_loss.item(),
+                    e + entropy_loss.item(),
+                )
                 iv += int_value_loss.item()
 
         p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
@@ -117,12 +133,17 @@ class RndPpoAgent(PpoAgent):
             rnn=self.net.recurrent_body,
         )
 
-        int_rewards = self.irew_gen.gen_rewards(normal_sampler.states, reporter=self.intrew_stats)
+        int_rewards = self.irew_gen.gen_rewards(
+            normal_sampler.states, reporter=self.intrew_stats
+        )
 
-        if self.update_steps > 0 and self.update_steps % self.config.intrew_log_freq == 0:
+        if (
+            self.update_steps > 0
+            and self.update_steps % self.config.intrew_log_freq == 0
+        ):
             d = self.intrew_stats.report_and_reset()
-            d['update-steps'] = self.update_steps
-            self.logger.exp('intrew', d)
+            d["update-steps"] = self.update_steps
+            self.logger.exp("intrew", d)
 
         self.storage.calc_int_returns(
             next_int_value,
@@ -132,14 +153,16 @@ class RndPpoAgent(PpoAgent):
             cfg.int_use_mask,
         )
 
-        self._update_policy(RndRolloutSampler(
-            normal_sampler,
-            self.storage,
-            self.irew_gen.cached_target,
-            cfg.adv_weight,
-            cfg.int_adv_weight,
-            adv_normalize_eps=self.config.adv_normalize_eps,
-        ))
+        self._update_policy(
+            RndRolloutSampler(
+                normal_sampler,
+                self.storage,
+                self.irew_gen.cached_target,
+                cfg.adv_weight,
+                cfg.int_adv_weight,
+                adv_normalize_eps=self.config.adv_normalize_eps,
+            )
+        )
 
         self.lr_cooler.lr_decay(self.optimizer)
         self.clip_eps = self.clip_cooler()

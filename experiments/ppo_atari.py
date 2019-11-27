@@ -8,11 +8,11 @@ from int_rew.rnd import atari_config
 from torch.optim import Adam
 
 
-def config(game: str = 'MontezumaRevenge') -> rainy.Config:
+def config(game: str = "MontezumaRevenge") -> rainy.Config:
     c = rainy.Config()
     c.set_env(lambda: Atari(game, cfg=atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
-    c.set_net_fn('actor-critic', rainy.net.actor_critic.ac_conv())
+    c.set_net_fn("actor-critic", rainy.net.actor_critic.ac_conv())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
     c.max_steps = int(1e8) * 6
     c.grad_clip = 1.0
@@ -36,5 +36,5 @@ def config(game: str = 'MontezumaRevenge') -> rainy.Config:
     return c
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli.run_cli(config, rainy.agents.PpoAgent, script_path=os.path.realpath(__file__))

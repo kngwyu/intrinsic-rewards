@@ -10,8 +10,12 @@ from rainy.net import calc_cnn_hidden, Initializer
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
-from .unsupervised import UnsupervisedBlock, UnsupervisedIRewGen,\
-    normalize_r_default, preprocess_default
+from .unsupervised import (
+    UnsupervisedBlock,
+    UnsupervisedIRewGen,
+    normalize_r_default,
+    preprocess_default,
+)
 
 flatten = chain.from_iterable
 
@@ -24,45 +28,64 @@ class VaeOutPut(NamedTuple):
 
 class ConvVae(nn.Module):
     def __init__(
-            self,
-            input_dim: Sequence[int],
-            conv_channels: List[int] = [32, 64, 32],
-            encorder_args: List[tuple] = [(8, 4), (4, 2), (3, 1)],
-            decorder_args: List[tuple] = [(3, 1), (4, 2), (8, 4)],
-            fc_units: List[int] = [256],
-            z_dim: int = 32,
-            activator: nn.Module = nn.ReLU(True),
-            initializer: Initializer = Initializer(nonlinearity='relu'),
+        self,
+        input_dim: Sequence[int],
+        conv_channels: List[int] = [32, 64, 32],
+        encorder_args: List[tuple] = [(8, 4), (4, 2), (3, 1)],
+        decorder_args: List[tuple] = [(3, 1), (4, 2), (8, 4)],
+        fc_units: List[int] = [256],
+        z_dim: int = 32,
+        activator: nn.Module = nn.ReLU(True),
+        initializer: Initializer = Initializer(nonlinearity="relu"),
     ) -> None:
         super().__init__()
         in_channel = input_dim[0] if len(input_dim) == 3 else 1
         channels = [in_channel] + conv_channels
-        self.encoder_conv = nn.Sequential(*flatten([
-            (nn.Conv2d(channels[i], channels[i + 1], *encorder_args[i]), activator)
-            for i in range(len(channels) - 1)
-        ]))
+        self.encoder_conv = nn.Sequential(
+            *flatten(
+                [
+                    (
+                        nn.Conv2d(channels[i], channels[i + 1], *encorder_args[i]),
+                        activator,
+                    )
+                    for i in range(len(channels) - 1)
+                ]
+            )
+        )
         self.cnn_hidden = calc_cnn_hidden(encorder_args, *input_dim[-2:])
         hidden = self.cnn_hidden[0] * self.cnn_hidden[1] * channels[-1]
         encoder_units = [hidden] + fc_units
-        self.encoder_fc = nn.Sequential(*flatten([
-            (nn.Linear(encoder_units[i], encoder_units[i + 1]), activator)
-            for i in range(len(encoder_units) - 1)
-        ]))
+        self.encoder_fc = nn.Sequential(
+            *flatten(
+                [
+                    (nn.Linear(encoder_units[i], encoder_units[i + 1]), activator)
+                    for i in range(len(encoder_units) - 1)
+                ]
+            )
+        )
         self.mu_fc = nn.Linear(encoder_units[-1], z_dim)
         self.logvar_fc = nn.Linear(encoder_units[-1], z_dim)
         decoder_units = [z_dim] + list(reversed(fc_units[:-1])) + [hidden]
-        self.decoder_fc = nn.Sequential(*flatten([
-            (nn.Linear(decoder_units[i], decoder_units[i + 1]), activator)
-            for i in range(len(decoder_units) - 1)
-        ]))
+        self.decoder_fc = nn.Sequential(
+            *flatten(
+                [
+                    (nn.Linear(decoder_units[i], decoder_units[i + 1]), activator)
+                    for i in range(len(decoder_units) - 1)
+                ]
+            )
+        )
         channels = list(reversed(conv_channels))
-        deconv = flatten([(
-            nn.ConvTranspose2d(channels[i], channels[i + 1], *decorder_args[i]),
-            activator
-        ) for i in range(len(channels) - 1)])
+        deconv = flatten(
+            [
+                (
+                    nn.ConvTranspose2d(channels[i], channels[i + 1], *decorder_args[i]),
+                    activator,
+                )
+                for i in range(len(channels) - 1)
+            ]
+        )
         self.decoder_deconv = nn.Sequential(
-            *deconv,
-            nn.ConvTranspose2d(channels[-1], in_channel, *decorder_args[-1])
+            *deconv, nn.ConvTranspose2d(channels[-1], in_channel, *decorder_args[-1])
         )
         self.z_dim = z_dim
         self.input_dim = input_dim
@@ -91,7 +114,7 @@ class ConvVae(nn.Module):
 
 
 def bernoulli_recons(a: Tensor, b: Tensor) -> Tensor:
-    return nn.functional.binary_cross_entropy_with_logits(a, b, reduction='sum')
+    return nn.functional.binary_cross_entropy_with_logits(a, b, reduction="sum")
 
 
 def categorical_gray(a: Tensor, b: Tensor) -> Tensor:
@@ -107,15 +130,17 @@ def gaussian_recons(a: Tensor, b: Tensor) -> Tensor:
     return torch.sigmoid(a).sub(b).pow(2)
 
 
-def _recons_fn(decoder_type: str = 'bernoulli') -> Callable[[Tensor, Tensor], Tensor]:
-    if decoder_type == 'bernoulli':
+def _recons_fn(decoder_type: str = "bernoulli") -> Callable[[Tensor, Tensor], Tensor]:
+    if decoder_type == "bernoulli":
         recons_loss = bernoulli_recons
-    elif decoder_type == 'gaussian':
+    elif decoder_type == "gaussian":
         recons_loss = gaussian_recons
-    elif decoder_type == 'categorical_gray':
+    elif decoder_type == "categorical_gray":
         recons_loss = categorical_gray
     else:
-        raise ValueError('Currently only bernoulli and gaussian are supported as decoder head')
+        raise ValueError(
+            "Currently only bernoulli and gaussian are supported as decoder head"
+        )
     return recons_loss
 
 
@@ -130,7 +155,7 @@ class VaeLoss(ABC):
 
 
 class BetaVaeLoss(VaeLoss):
-    def __init__(self, beta: float = 1.0, decoder_type: str = 'gaussian') -> None:
+    def __init__(self, beta: float = 1.0, decoder_type: str = "gaussian") -> None:
         self._recons_fn = _recons_fn(decoder_type)
         self.beta = beta
 
@@ -138,8 +163,7 @@ class BetaVaeLoss(VaeLoss):
         return self._recons_fn(output, img)
 
     def latent_loss(self, logvar: Tensor, mu: Tensor) -> Tensor:
-        kld = -0.5 * \
-            torch.sum(1.0 + logvar - mu.pow(2.0) - logvar.exp())
+        kld = -0.5 * torch.sum(1.0 + logvar - mu.pow(2.0) - logvar.exp())
         return kld.mul(self.beta)
 
 
@@ -174,13 +198,13 @@ def normalize_vae(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
 
 
 def irew_gen_vae(
-        vae_loss: VaeLoss = BetaVaeLoss(beta=1.0),
-        preprocess: callable = preprocess_default,
-        state_normalizer: callable = normalize_vae,
-        reward_normalizer: callable = normalize_r_default,
-        **kwargs
-) -> Callable[['RndConfig', Device], UnsupervisedIRewGen]:
-    def _make_irew_gen(cfg: 'RndConfig', device: Device) -> UnsupervisedIRewGen:
+    vae_loss: VaeLoss = BetaVaeLoss(beta=1.0),
+    preprocess: callable = preprocess_default,
+    state_normalizer: callable = normalize_vae,
+    reward_normalizer: callable = normalize_r_default,
+    **kwargs
+) -> Callable[["RndConfig", Device], UnsupervisedIRewGen]:
+    def _make_irew_gen(cfg: "RndConfig", device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
         vae = ConvVae(input_dim, **kwargs)
         loss_fn = vae_loss
@@ -193,4 +217,5 @@ def irew_gen_vae(
             state_normalizer=state_normalizer,
             reward_normalizer=reward_normalizer,
         )
+
     return _make_irew_gen

@@ -51,14 +51,14 @@ class UnsupervisedBlock(nn.Module, ABC):
 
 class UnsupervisedIRewGen(HasStateDict):
     def __init__(
-            self,
-            intrew_block: UnsupervisedBlock,
-            gamma: float,
-            nworkers: int,
-            device: Device,
-            preprocess: Callable[[Tensor, Device], Tensor],
-            state_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor],
-            reward_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor]
+        self,
+        intrew_block: UnsupervisedBlock,
+        gamma: float,
+        nworkers: int,
+        device: Device,
+        preprocess: Callable[[Tensor, Device], Tensor],
+        state_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor],
+        reward_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor],
     ) -> None:
         super().__init__()
         self.block = intrew_block
@@ -75,10 +75,10 @@ class UnsupervisedIRewGen(HasStateDict):
 
     def state_dict(self) -> dict:
         return {
-            'block': self.block.state_dict(),
-            'ob_rms': self.ob_rms.state_dict(),
-            'rff': self.rff.state_dict(),
-            'rff_rms': self.rff_rms.state_dict(),
+            "block": self.block.state_dict(),
+            "ob_rms": self.ob_rms.state_dict(),
+            "rff": self.rff.state_dict(),
+            "rff_rms": self.rff_rms.state_dict(),
         }
 
     def load_state_dict(self, d: dict) -> None:
@@ -101,16 +101,20 @@ class UnsupervisedIRewGen(HasStateDict):
         self.rff_rms.update(rffs_int.view(-1))
         normalized_rewards = self.reward_normalizer(rewards, self.rff_rms)
         if reporter is not None:
-            reporter.update({
-                'intrew_raw_mean': rewards.mean().item(),
-                'intrew_mean': normalized_rewards.mean().item(),
-                'rffs_mean': rffs_int.mean().item(),
-                'rffs_rms_mean': self.rff_rms.mean.mean().item(),
-                'rffs_rms_std': self.rff_rms.std().mean().item(),
-            })
+            reporter.update(
+                {
+                    "intrew_raw_mean": rewards.mean().item(),
+                    "intrew_mean": normalized_rewards.mean().item(),
+                    "rffs_mean": rffs_int.mean().item(),
+                    "rffs_rms_mean": self.rff_rms.mean.mean().item(),
+                    "rffs_rms_std": self.rff_rms.std().mean().item(),
+                }
+            )
         return normalized_rewards
 
-    def aux_loss(self, state: Tensor, target: Optional[Tensor], use_ratio: float) -> Tensor:
+    def aux_loss(
+        self, state: Tensor, target: Optional[Tensor], use_ratio: float
+    ) -> Tensor:
         mask = torch.empty(state.size(0)).uniform_() < use_ratio
         s = self.preprocess(state[mask])
         normalized_s = self.state_normalizer(s, self.ob_rms)
