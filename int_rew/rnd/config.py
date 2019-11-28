@@ -4,7 +4,7 @@ from .irew import irew_gen_default, UnsupervisedIRewGen
 from .net import rnd_ac_conv
 
 
-class RndConfig(rainy.Config):
+class RNDConfig(rainy.Config):
     def __init__(self) -> None:
         super().__init__()
         # Override hyper parameters

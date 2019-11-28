@@ -31,8 +31,8 @@ def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
 EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 
-def config() -> rnd.RndConfig:
-    c = rnd.RndConfig()
+def config() -> rnd.RNDConfig:
+    c = rnd.RNDConfig()
     c.set_parallel_env(
         lambda _env_gen, _num_w: ParallelRogueEnvExt(
             ParallelRogueEnv(
@@ -74,4 +74,4 @@ def config() -> rnd.RndConfig:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rnd.RndPpoAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, rnd.RNDAgent, script_path=os.path.realpath(__file__))

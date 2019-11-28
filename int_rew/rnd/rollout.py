@@ -8,7 +8,7 @@ from typing import NamedTuple, Optional
 from ..rollout import IntValueRolloutStorage
 
 
-class RndRolloutBatch(NamedTuple):
+class RNDRolloutBatch(NamedTuple):
     states: Tensor
     actions: Tensor
     masks: Tensor
@@ -22,7 +22,7 @@ class RndRolloutBatch(NamedTuple):
     rnn_init: RnnState
 
 
-class RndRolloutSampler(RolloutSampler):
+class RNDRolloutSampler(RolloutSampler):
     def __init__(
         self,
         sampler: RolloutSampler,
@@ -41,8 +41,8 @@ class RndRolloutSampler(RolloutSampler):
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)
 
-    def _make_batch(self, i: Array[int]) -> RndRolloutBatch:
-        return RndRolloutBatch(
+    def _make_batch(self, i: Array[int]) -> RNDRolloutBatch:
+        return RNDRolloutBatch(
             self.states[i],
             self.actions[i],
             self.masks[i],

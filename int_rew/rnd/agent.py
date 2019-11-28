@@ -1,21 +1,27 @@
 from itertools import chain
 import numpy as np
-from rainy.agents import PpoAgent
+from rainy.agents import PPOAgent
 from rainy.lib import mpi
 from rainy.lib.rollout import RolloutSampler
 from rainy.prelude import Array, State
-from rainy.utils.log import ExpStats
 import torch
 from torch import Tensor
-from typing import Tuple
-from .config import RndConfig
-from .rollout import RndRolloutSampler
+from .config import RNDConfig
+from .rollout import RNDRolloutSampler
 from ..rollout import IntValueRolloutStorage
 
 
-class RndPpoAgent(PpoAgent):
-    def __init__(self, config: RndConfig) -> None:
+class RNDAgent(PPOAgent):
+    SAVED_MEMBERS = "net", "clip_eps", "clip_cooler", "optimizer", "irew_gen"
+
+    def __init__(self, config: RNDConfig) -> None:
         super().__init__(config)
+        self.logger.summary_setting(
+            "intrew",
+            ["update_steps"],
+            interval=self.config.intrew_log_freq,
+            color="magenta",
+        )
         self.net = config.net("actor-critic")
         another_device = config.device.split()
         self.storage = IntValueRolloutStorage(
@@ -32,18 +38,13 @@ class RndPpoAgent(PpoAgent):
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]["lr"])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
-        nbatchs = (
-            self.config.nsteps * self.config.nworkers
-        ) // self.config.ppo_minibatch_size
-        self.num_updates = self.config.ppo_epochs * nbatchs
-        self.intrew_stats = ExpStats()
+        batch_size = self.config.nsteps * self.config.nworkers
+        nbatches = batch_size // self.config.ppo_minibatch_size
+        self.num_updates = self.config.ppo_epochs * nbatches
         mpi.setup_models(self.net, self.irew_gen.block)
         self.optimizer = mpi.setup_optimizer(self.optimizer)
         if not self.config.normalize_int_reward:
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
-
-    def members_to_save(self) -> Tuple[str, ...]:
-        return "net", "clip_eps", "clip_cooler", "optimizer", "irew_gen"
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
@@ -76,7 +77,7 @@ class RndPpoAgent(PpoAgent):
                 )
                 self.storage.reset()
 
-    def _update_policy(self, sampler: RndRolloutSampler) -> None:
+    def _update_policy(self, sampler: RNDRolloutSampler) -> None:
         p, v, iv, e = (0.0,) * 4
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:
@@ -134,16 +135,8 @@ class RndPpoAgent(PpoAgent):
         )
 
         int_rewards = self.irew_gen.gen_rewards(
-            normal_sampler.states, reporter=self.intrew_stats
+            normal_sampler.states, reporter=self.logger
         )
-
-        if (
-            self.update_steps > 0
-            and self.update_steps % self.config.intrew_log_freq == 0
-        ):
-            d = self.intrew_stats.report_and_reset()
-            d["update-steps"] = self.update_steps
-            self.logger.exp("intrew", d)
 
         self.storage.calc_int_returns(
             next_int_value,
@@ -154,7 +147,7 @@ class RndPpoAgent(PpoAgent):
         )
 
         self._update_policy(
-            RndRolloutSampler(
+            RNDRolloutSampler(
                 normal_sampler,
                 self.storage,
                 self.irew_gen.cached_target,

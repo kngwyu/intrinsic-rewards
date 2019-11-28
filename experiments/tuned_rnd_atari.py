@@ -4,8 +4,8 @@ from rainy.envs import Atari, atari_parallel
 from int_rew import rnd
 
 
-def config(game: str = "MontezumaRevenge") -> rnd.RndConfig:
-    c = rnd.RndConfig()
+def config(game: str = "MontezumaRevenge") -> rnd.RNDConfig:
+    c = rnd.RNDConfig()
     c.set_env(lambda: Atari(game, cfg=rnd.atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
     c.max_steps = int(1e8) * 6
@@ -27,4 +27,4 @@ def config(game: str = "MontezumaRevenge") -> rnd.RndConfig:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rnd.TunedRndPpoAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, rnd.TunedRNDAgent, script_path=os.path.realpath(__file__))

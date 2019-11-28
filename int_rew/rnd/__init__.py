@@ -1,8 +1,8 @@
 import rainy
-from .agent import RndPpoAgent
-from .config import RndConfig
+from .agent import RNDAgent
+from .config import RNDConfig
 from .irew import irew_gen_default, UnsupervisedIRewGen
-from .tuned_agent import TunedRndPpoAgent
+from .tuned_agent import TunedRNDAgent
 
 
 def atari_config() -> rainy.envs.AtariConfig:

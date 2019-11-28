@@ -1,15 +1,14 @@
-from rainy.agents import PpoAgent
+from rainy.agents import PPOAgent
 from rainy.lib import mpi
-from rainy.utils.log import ExpStats
-from .agent import RndPpoAgent
-from .config import RndConfig
-from .rollout import RndRolloutSampler
+from .agent import RNDAgent
+from .config import RNDConfig
+from .rollout import RNDRolloutSampler
 from ..rollout import IntValueRolloutStorage
 
 
-class TunedRndPpoAgent(RndPpoAgent):
-    def __init__(self, config: RndConfig) -> None:
-        PpoAgent.__init__(self, config)
+class TunedRNDAgent(RNDAgent):
+    def __init__(self, config: RNDConfig) -> None:
+        PPOAgent.__init__(self, config)
         self.net = config.net("actor-critic")
         another_device = config.device.split()
         self.storage = IntValueRolloutStorage(
@@ -23,11 +22,9 @@ class TunedRndPpoAgent(RndPpoAgent):
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]["lr"])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
-        nbatchs = (
-            self.config.nsteps * self.config.nworkers
-        ) // self.config.ppo_minibatch_size
-        self.num_updates = self.config.ppo_epochs * nbatchs
-        self.intrew_stats = ExpStats()
+        batch_size = self.config.nsteps * self.config.nworkers
+        nbatches = batch_size // self.config.ppo_minibatch_size
+        self.num_updates = self.config.ppo_epochs * nbatches
 
         mpi.setup_models(self.net, self.irew_gen.block)
         self.optimizer = mpi.setup_optimizer(config.optimizer(self.net.parameters()))
@@ -37,7 +34,7 @@ class TunedRndPpoAgent(RndPpoAgent):
         if not self.config.normalize_int_reward:
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
 
-    def _update_policy(self, sampler: RndRolloutSampler) -> None:
+    def _update_policy(self, sampler: RNDRolloutSampler) -> None:
         p, v, iv, e = (0.0,) * 4
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:

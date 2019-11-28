@@ -6,7 +6,9 @@ from itertools import chain
 import torch
 from torch import nn, Size, Tensor
 from typing import Callable, List, NamedTuple, Optional, Sequence, Tuple
+from rainy import Config
 from rainy.net import calc_cnn_hidden, Initializer
+from rainy.net.init import orthogonal
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
@@ -36,7 +38,9 @@ class ConvVae(nn.Module):
         fc_units: List[int] = [256],
         z_dim: int = 32,
         activator: nn.Module = nn.ReLU(True),
-        initializer: Initializer = Initializer(nonlinearity="relu"),
+        initializer: Initializer = Initializer(
+            weight_init=orthogonal(nonlinearity="relu")
+        ),
     ) -> None:
         super().__init__()
         in_channel = input_dim[0] if len(input_dim) == 3 else 1
@@ -203,8 +207,8 @@ def irew_gen_vae(
     state_normalizer: callable = normalize_vae,
     reward_normalizer: callable = normalize_r_default,
     **kwargs
-) -> Callable[["RndConfig", Device], UnsupervisedIRewGen]:
-    def _make_irew_gen(cfg: "RndConfig", device: Device) -> UnsupervisedIRewGen:
+) -> Callable[[Config, Device], UnsupervisedIRewGen]:
+    def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
         vae = ConvVae(input_dim, **kwargs)
         loss_fn = vae_loss
