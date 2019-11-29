@@ -1,3 +1,4 @@
+from pathlib import Path
 from rainy.envs import Atari, DummyParallelEnv, atari_parallel
 from rainy.envs.testing import DummyEnv
 from rainy.lib.rollout import RolloutSampler
@@ -23,12 +24,15 @@ def test_save_and_load() -> None:
     agent = rnd.RNDAgent(config())
     agent.irew_gen.gen_rewards(torch.randn(4 * 4, 2, 84, 84))
     nonep = agent.irew_gen.rff_rms.mean.cpu().numpy()
-    agent.save("agent.pth")
+    savedir = Path("Results/Test")
+    if not savedir.exists():
+        savedir.mkdir(parents=True)
+    agent.save("agent.pth", savedir)
     agent.close()
     c = config()
     c.device = Device(use_cpu=True)
     agent = rnd.RNDAgent(c)
-    agent.load("agent.pth")
+    agent.load("agent.pth", savedir)
     nonep_new = agent.irew_gen.rff_rms.mean.cpu().numpy()
     assert_array_almost_equal(nonep, nonep_new)
     agent.close()
