@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 
 with io.open("int_rew/__init__.py", "rt", encoding="utf8") as f:
-    version = re.search(r"__version__ = \'(.*?)\'", f.read()).group(1)
+    version = re.search(r"__version__ = \"(.*?)\"", f.read()).group(1)
 
 
 setup(

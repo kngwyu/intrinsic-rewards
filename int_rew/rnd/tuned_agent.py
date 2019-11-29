@@ -76,4 +76,4 @@ class TunedRNDAgent(RNDAgent):
             )
 
         p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
-        self.report_loss(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)
+        self.network_log(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)

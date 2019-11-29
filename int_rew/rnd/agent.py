@@ -113,7 +113,7 @@ class RNDAgent(PPOAgent):
                 iv += int_value_loss.item()
 
         p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
-        self.report_loss(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)
+        self.network_log(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)
 
     def nstep(self, states: Array[State]) -> Array[State]:
         if self.update_steps == 0 and self.config.initialize_stats is not None:

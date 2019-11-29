@@ -103,13 +103,11 @@ class UnsupervisedIRewGen(HasStateDict):
         if reporter is not None:
             reporter.submit(
                 "intrew",
-                {
-                    "intrew_raw_mean": rewards.mean().item(),
-                    "intrew_mean": normalized_rewards.mean().item(),
-                    "rffs_mean": rffs_int.mean().item(),
-                    "rffs_rms_mean": self.rff_rms.mean.mean().item(),
-                    "rffs_rms_std": self.rff_rms.std().mean().item(),
-                },
+                intrew_raw_mean=rewards.mean().item(),
+                intrew_mean=normalized_rewards.mean().item(),
+                rffs_mean=rffs_int.mean().item(),
+                rffs_rms_mean=self.rff_rms.mean.mean().item(),
+                rffs_rms_std=self.rff_rms.std().mean().item(),
             )
         return normalized_rewards
 

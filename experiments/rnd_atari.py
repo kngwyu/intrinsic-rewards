@@ -20,7 +20,7 @@ def config(game: str = "MontezumaRevenge") -> rnd.RNDConfig:
     c.use_reward_monitor = True
     # eval settings
     c.eval_env = Atari(game, cfg=rnd.atari_config())
-    c.episode_log_freq = 100
+    c.episode_log_freq = 1000
     c.eval_freq = None
     c.save_freq = int(1e8)
     return c
