@@ -1,4 +1,6 @@
 # Intrinsic-Rewards
+[![Actions Status](https://github.com/kngwyu/intrinsic-rewards/workflows/Tests/badge.svg)](https://github.com/kngwyu/intrinsic-rewards/actions)
+
 A collection of deep reinforcement learning algorithms with intrinsic rewards,
 based on [Rainy](https://github.com/kngwyu/Rainy) and [PyTorch](https://pytorch.org/).
 

@@ -26,6 +26,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: make init
+      run: |
+        pip install pipenv
+        make init
     - name: Test with pytest
       run: make test
