@@ -1,12 +1,15 @@
+import click
 import os
 import rainy.utils.cli as cli
 from rainy.envs import Atari, atari_parallel
+from torch.optim import Adam
 from int_rew import rnd
 
 
-def config(game: str = "MontezumaRevenge") -> rnd.RNDConfig:
+def config(game: str = "MontezumaRevenge", rnd_lr: float = 5.0e-5) -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.set_env(lambda: Atari(game, cfg=rnd.atari_config(), frame_stack=False))
+    c.set_optimizer(lambda params: Adam(params, lr=rnd_lr), key="rnd_separated")
     c.set_parallel_env(atari_parallel())
     c.max_steps = int(1e8) * 6
     c.grad_clip = 1.0
@@ -27,4 +30,7 @@ def config(game: str = "MontezumaRevenge") -> rnd.RNDConfig:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rnd.TunedRNDAgent, script_path=os.path.realpath(__file__))
+    options = [click.Option(["--rnd-lr"], type=float, default=5.0e-5)]
+    cli.run_cli(
+        config, rnd.TunedRNDAgent, os.path.realpath(__file__), options,
+    )
