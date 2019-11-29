@@ -1,7 +1,13 @@
 from int_rew import rnd
 import os
 from rainy.utils import cli
-from rogue_gym.envs import DungeonType, ImageSetting, RogueEnv, ParallelRogueEnv, StatusFlag
+from rogue_gym.envs import (
+    DungeonType,
+    ImageSetting,
+    RogueEnv,
+    ParallelRogueEnv,
+    StatusFlag,
+)
 from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
 from torch.optim import Adam
 from typing import Tuple, Union
@@ -12,54 +18,51 @@ def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
         "width": 32,
         "height": 16,
         "hide_dungeon": True,
-        "dungeon": {
-            "style": "rogue",
-            "room_num_x": 2,
-            "room_num_y": 2,
-        },
-
-        "enemies": {
-            "enemies": [],
-        },
+        "dungeon": {"style": "rogue", "room_num_x": 2, "room_num_y": 2,},
+        "enemies": {"enemies": [],},
     }
     if isinstance(seed, int):
-        common['seed'] = seed
+        common["seed"] = seed
     else:
-        common['seed_range'] = seed
+        common["seed_range"] = seed
     return common
 
 
 EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 
-def config() -> rnd.RndConfig:
-    c = rnd.RndConfig()
-    c.set_parallel_env(lambda _env_gen, _num_w: ParallelRogueEnvExt(ParallelRogueEnv(
-        [rogue_config(2)] * c.nworkers,
-        max_steps=500,
-        image_setting=EXPAND,
-    )))
+def config() -> rnd.RNDConfig:
+    c = rnd.RNDConfig()
+    c.set_parallel_env(
+        lambda _env_gen, _num_w: ParallelRogueEnvExt(
+            ParallelRogueEnv(
+                [rogue_config(2)] * c.nworkers, max_steps=500, image_setting=EXPAND,
+            )
+        )
+    )
     c.max_steps = int(2e7) * 2
     c.save_freq = None
     c.eval_freq = None
-    c.eval_env = RogueEnvExt(RogueEnv(
-        config_dict=rogue_config(2),
-        mex_steps=500,
-        stair_reward=50.0,
-        image_setting=EXPAND,
-    ))
+    c.eval_env = RogueEnvExt(
+        RogueEnv(
+            config_dict=rogue_config(2),
+            mex_steps=500,
+            stair_reward=50.0,
+            image_setting=EXPAND,
+        )
+    )
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
     CNN_PARAM = [(8, 1), (4, 1), (3, 1)]
-    c.set_net_fn('actor-critic', rnd.net.rnd_ac_conv(
-        kernel_and_strides=CNN_PARAM,
-        output_dim=256,
-    ))
+    c.set_net_fn(
+        "actor-critic",
+        rnd.net.rnd_ac_conv(kernel_and_strides=CNN_PARAM, output_dim=256,),
+    )
     c._int_reward_gen = rnd.irew.irew_gen_default(
         params=CNN_PARAM,
         channels=(32, 64, 32),
         output_dim=256,
         preprocess=lambda t, device: t.to(device.unwrapped),
-        state_normalizer=lambda t, rms: t.reshape(-1, 1, *t.shape[-2:])
+        state_normalizer=lambda t, rms: t.reshape(-1, 1, *t.shape[-2:]),
     )
     c.nworkers = 32
     c.nsteps = 125
@@ -70,5 +73,5 @@ def config() -> rnd.RndConfig:
     return c
 
 
-if __name__ == '__main__':
-    cli.run_cli(config, rnd.RndPpoAgent, script_path=os.path.realpath(__file__))
+if __name__ == "__main__":
+    cli.run_cli(config, rnd.RNDAgent, script_path=os.path.realpath(__file__))

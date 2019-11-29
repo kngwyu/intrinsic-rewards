@@ -8,7 +8,7 @@ from typing import NamedTuple, Optional
 from ..rollout import IntValueRolloutStorage
 
 
-class RndRolloutBatch(NamedTuple):
+class RNDRolloutBatch(NamedTuple):
     states: Tensor
     actions: Tensor
     masks: Tensor
@@ -22,15 +22,15 @@ class RndRolloutBatch(NamedTuple):
     rnn_init: RnnState
 
 
-class RndRolloutSampler(RolloutSampler):
+class RNDRolloutSampler(RolloutSampler):
     def __init__(
-            self,
-            sampler: RolloutSampler,
-            storage: IntValueRolloutStorage,
-            target: Optional[Tensor],
-            ext_coeff: float,
-            int_coeff: float,
-            adv_normalize_eps: Optional[float] = None
+        self,
+        sampler: RolloutSampler,
+        storage: IntValueRolloutStorage,
+        target: Optional[Tensor],
+        ext_coeff: float,
+        int_coeff: float,
+        adv_normalize_eps: Optional[float] = None,
     ) -> None:
         self.__dict__.update(sampler.__dict__)
         self.int_returns = storage.int_returns.flatten()
@@ -41,8 +41,8 @@ class RndRolloutSampler(RolloutSampler):
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)
 
-    def _make_batch(self, i: Array[int]) -> RndRolloutBatch:
-        return RndRolloutBatch(
+    def _make_batch(self, i: Array[int]) -> RNDRolloutBatch:
+        return RNDRolloutBatch(
             self.states[i],
             self.actions[i],
             self.masks[i],
@@ -53,5 +53,5 @@ class RndRolloutSampler(RolloutSampler):
             self.int_returns[i],
             self.advantages[i],
             None if self.targets is None else self.targets[i],
-            self.rnn_init[i[:len(i) // self.nsteps]]
+            self.rnn_init[i[: len(i) // self.nsteps]],
         )
