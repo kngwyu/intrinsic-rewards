@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "2dfc4260113bb807ff71fa10d814cf77b71a03b78e1e0024b9f30ae427ad9620"
+            "sha256": "98670fc6741e6a2b91204f4f83ea66f28cd709d232a60b7687e210dbf8853441"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -221,11 +221,11 @@
         },
         "rainy": {
             "hashes": [
-                "sha256:d7484fb1cc44a770da2d7339b19048d1133ed73cabd1ea899d0e3b1cf362f61d",
-                "sha256:d873c3e44d535a015a2cd2c04058da15f69b4b2affbee985ec03f3943557c443"
+                "sha256:5cd76e99ee44ff68690316d5c4451ae62429345aa6e942234c6e2b0f04a4da67",
+                "sha256:8941798146a8a54b5ec729b8c85a49090021a0e34ad6c9ae93cca83e0b21ad76"
             ],
             "index": "pypi",
-            "version": "==0.5.0"
+            "version": "==0.5.1"
         },
         "rogue-gym": {
             "hashes": [
@@ -320,10 +320,10 @@
         },
         "more-itertools": {
             "hashes": [
-                "sha256:409cd48d4db7052af495b09dec721011634af3753ae1ef92d2b32f73a745f832",
-                "sha256:92b8c4b06dac4f0611c0729b2f2ede52b2e1bac1ab48f089c7ddc12e26bb60c4"
+                "sha256:53ff73f186307d9c8ef17a9600309154a6ae27f25579e80af4db8f047ba14bc2",
+                "sha256:a0ea684c39bc4315ba7aae406596ef191fd84f873d2d2751f84d64e81a7a2d45"
             ],
-            "version": "==7.2.0"
+            "version": "==8.0.0"
         },
         "pluggy": {
             "hashes": [
