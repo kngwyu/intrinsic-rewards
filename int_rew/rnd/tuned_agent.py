@@ -34,6 +34,13 @@ class TunedRNDAgent(RNDAgent):
         if not self.config.normalize_int_reward:
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
 
+        self.logger.summary_setting(
+            "intrew",
+            ["update_steps"],
+            interval=config.network_log_freq,
+            color="magenta",
+        )
+
     def _update_policy(self, sampler: RNDRolloutSampler) -> None:
         p, v, iv, e = (0.0,) * 4
         for _ in range(self.config.ppo_epochs):

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "98670fc6741e6a2b91204f4f83ea66f28cd709d232a60b7687e210dbf8853441"
+            "sha256": "087bec1da4b40320fd38d95d0e424b1df0b6af10fa924b8b37409139a8e6ec5b"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -221,11 +221,11 @@
         },
         "rainy": {
             "hashes": [
-                "sha256:5cd76e99ee44ff68690316d5c4451ae62429345aa6e942234c6e2b0f04a4da67",
-                "sha256:8941798146a8a54b5ec729b8c85a49090021a0e34ad6c9ae93cca83e0b21ad76"
+                "sha256:101eaee1a4f8e2fce006363f6aada85060fd31b69dc2475714d3e1b82a4d46b7",
+                "sha256:e5717d9d636d2d7015b41ba988c9331a54018d1362e3a497518bd8919e4680ae"
             ],
             "index": "pypi",
-            "version": "==0.5.1"
+            "version": "==0.5.2"
         },
         "rogue-gym": {
             "hashes": [

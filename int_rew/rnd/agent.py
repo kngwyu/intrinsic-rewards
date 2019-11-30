@@ -46,6 +46,13 @@ class RNDAgent(PPOAgent):
         if not self.config.normalize_int_reward:
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
 
+        self.logger.summary_setting(
+            "intrew",
+            ["update_steps"],
+            interval=config.network_log_freq,
+            color="magenta",
+        )
+
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
             policy, value, pvalue, rnns = self.net(*self._network_in(states))
@@ -134,9 +141,9 @@ class RNDAgent(PPOAgent):
             rnn=self.net.recurrent_body,
         )
 
-        int_rewards = self.irew_gen.gen_rewards(
-            normal_sampler.states, reporter=self.logger
-        )
+        int_rewards, stats = self.irew_gen.gen_rewards(normal_sampler.states)
+        stats["update_steps"] = self.update_steps
+        self.logger.submit("intrew", **stats)
 
         self.storage.calc_int_returns(
             next_int_value,

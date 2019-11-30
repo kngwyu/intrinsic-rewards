@@ -87,9 +87,7 @@ class UnsupervisedIRewGen(HasStateDict):
     def preprocess(self, t: Tensor) -> Tensor:
         return self._preprocess(t, self.device)
 
-    def gen_rewards(
-        self, state: Tensor, reporter: Optional[ExperimentLogger] = None
-    ) -> Tensor:
+    def gen_rewards(self, state: Tensor) -> Tuple[Tensor, dict]:
         s = self.preprocess(state)
         self.ob_rms.update(s.double().view(-1, *self.ob_rms.mean.shape))
         with torch.no_grad():
@@ -100,16 +98,14 @@ class UnsupervisedIRewGen(HasStateDict):
         rffs_int = torch.cat([self.rff.update(rewards[i]) for i in range(nsteps)])
         self.rff_rms.update(rffs_int.view(-1))
         normalized_rewards = self.reward_normalizer(rewards, self.rff_rms)
-        if reporter is not None:
-            reporter.submit(
-                "intrew",
-                intrew_raw_mean=rewards.mean().item(),
-                intrew_mean=normalized_rewards.mean().item(),
-                rffs_mean=rffs_int.mean().item(),
-                rffs_rms_mean=self.rff_rms.mean.mean().item(),
-                rffs_rms_std=self.rff_rms.std().mean().item(),
-            )
-        return normalized_rewards
+        stats = dict(
+            intrew_raw_mean=rewards.mean().item(),
+            intrew_mean=normalized_rewards.mean().item(),
+            rffs_mean=rffs_int.mean().item(),
+            rffs_rms_mean=self.rff_rms.mean.mean().item(),
+            rffs_rms_std=self.rff_rms.std().mean().item(),
+        )
+        return normalized_rewards, stats
 
     def aux_loss(
         self, state: Tensor, target: Optional[Tensor], use_ratio: float
