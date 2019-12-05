@@ -9,7 +9,8 @@ path = '.'
 
 [packages]
 torch = "==1.3.1"
-rainy = "==0.5.2"
+# rainy = "==0.5.3"
+rainy = { editable = true, path = "../Rainy" }
 rogue-gym = "==0.0.2"
 
 [dev-packages]
