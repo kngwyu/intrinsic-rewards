@@ -1,5 +1,6 @@
 from torch import nn, Tensor
 from typing import Callable, List, Optional, Sequence, Tuple
+from rainy import Config
 from rainy.net import make_cnns, NetworkBlock
 from rainy.net.init import Initializer, orthogonal
 from rainy.prelude import Params
@@ -23,14 +24,10 @@ class RNDConvBody(NetworkBlock):
         super().__init__()
         self.cnns = init.make_list(cnns)
         self.fcs = init.make_list(fcs)
-        self._input_dim = input_dim
+        self.input_dim = input_dim
         self.init = init
         self.activ1 = activ1
         self.activ2 = activ2
-
-    @property
-    def input_dim(self) -> Tuple[int, ...]:
-        return self._input_dim
 
     @property
     def output_dim(self) -> int:
@@ -78,8 +75,8 @@ def irew_gen_default(
     reward_normalizer: Callable[
         [Tensor, RunningMeanStdTorch], Tensor
     ] = normalize_r_default,
-) -> Callable[["RNDConfig", Device], UnsupervisedIRewGen]:
-    def _make_irew_gen(cfg: "RNDConfig", device: Device) -> UnsupervisedIRewGen:
+) -> Callable[[Config, Device], UnsupervisedIRewGen]:
+    def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
         cnns, hidden = make_cnns(input_dim, params, channels)
         target = RNDConvBody(cnns, [nn.Linear(hidden, output_dim)], input_dim)

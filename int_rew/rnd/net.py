@@ -8,15 +8,15 @@ from rainy.net import (
     NetworkBlock,
     RnnBlock,
     RnnState,
-    SharedBodyACNet,
+    SharedACNet,
 )
-from rainy.prelude import Array
+from rainy.prelude import ArrayLike
 from rainy.utils import Device
 from torch import Tensor
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Type
 
 
-class RNDACNet(SharedBodyACNet):
+class RNDACNet(SharedACNet):
     def __init__(
         self,
         body: NetworkBlock,
@@ -39,7 +39,7 @@ class RNDACNet(SharedBodyACNet):
 
     def values(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor]:
@@ -49,7 +49,7 @@ class RNDACNet(SharedBodyACNet):
 
     def forward(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, Tensor, Tensor, RnnState]:
@@ -61,10 +61,10 @@ class RNDACNet(SharedBodyACNet):
 
 
 def rnd_ac_conv(
-    policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
+    policy: Type[PolicyDist] = CategoricalDist,
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
     output_dim: int = 256,
-    rnn: Callable[[int, int], RnnBlock] = DummyRnn,
+    rnn: Type[RnnBlock] = DummyRnn,
     **kwargs
 ) -> Callable[[Tuple[int, int, int], int, Device], RNDACNet]:
     def _net(
