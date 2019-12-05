@@ -22,12 +22,12 @@ def config() -> rnd.RNDConfig:
 
 
 @pytest.mark.parametrize(
-    "irew_gen", [rnd.irew_gen_default(), vae.irew_gen_vae()]
+    "irew_gen", [rnd.irew_gen_default(), vae.irew_gen_vae()],
 )
 def test_save_and_load(irew_gen) -> None:
     c = config()
     c._int_reward_gen = irew_gen
-    agent = rnd.RNDAgent(config())
+    agent = rnd.RNDAgent(c)
     agent.irew_gen.gen_rewards(torch.randn(4 * 4, 2, 84, 84))
     nonep = agent.irew_gen.rff_rms.mean.cpu().numpy()
     savedir = Path("Results/Test")
@@ -35,7 +35,6 @@ def test_save_and_load(irew_gen) -> None:
         savedir.mkdir(parents=True)
     agent.save("agent.pth", savedir)
     agent.close()
-    c = config()
     c.device = Device(use_cpu=True)
     agent = rnd.RNDAgent(c)
     agent.load("agent.pth", savedir)
