@@ -12,12 +12,14 @@ from rainy.net.init import orthogonal
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
+from .prelude import Normalizer, PreProcessor
 from .unsupervised import (
     UnsupervisedBlock,
     UnsupervisedIRewGen,
     normalize_r_default,
     preprocess_default,
 )
+from .utils import construct_body, sequential_body
 
 flatten = chain.from_iterable
 
@@ -45,48 +47,34 @@ class ConvVae(nn.Module):
         super().__init__()
         in_channel = input_dim[0] if len(input_dim) == 3 else 1
         channels = [in_channel] + conv_channels
-        self.encoder_conv = nn.Sequential(
-            *flatten(
-                [
-                    (
-                        nn.Conv2d(channels[i], channels[i + 1], *encorder_args[i]),
-                        activator,
-                    )
-                    for i in range(len(channels) - 1)
-                ]
-            )
+        self.encoder_conv = sequential_body(
+            lambda i: (
+                nn.Conv2d(channels[i], channels[i + 1], *encorder_args[i]),
+                activator,
+            ),
+            len(channels) - 1,
         )
         self.cnn_hidden = calc_cnn_hidden(encorder_args, *input_dim[-2:])
         hidden = self.cnn_hidden[0] * self.cnn_hidden[1] * channels[-1]
         encoder_units = [hidden] + fc_units
-        self.encoder_fc = nn.Sequential(
-            *flatten(
-                [
-                    (nn.Linear(encoder_units[i], encoder_units[i + 1]), activator)
-                    for i in range(len(encoder_units) - 1)
-                ]
-            )
+        self.encoder_fc = sequential_body(
+            lambda i: (nn.Linear(encoder_units[i], encoder_units[i + 1]), activator),
+            len(encoder_units) - 1,
         )
         self.mu_fc = nn.Linear(encoder_units[-1], z_dim)
         self.logvar_fc = nn.Linear(encoder_units[-1], z_dim)
         decoder_units = [z_dim] + list(reversed(fc_units[:-1])) + [hidden]
-        self.decoder_fc = nn.Sequential(
-            *flatten(
-                [
-                    (nn.Linear(decoder_units[i], decoder_units[i + 1]), activator)
-                    for i in range(len(decoder_units) - 1)
-                ]
-            )
+        self.decoder_fc = sequential_body(
+            lambda i: (nn.Linear(decoder_units[i], decoder_units[i + 1]), activator),
+            len(decoder_units) - 1,
         )
         channels = list(reversed(conv_channels))
-        deconv = flatten(
-            [
-                (
-                    nn.ConvTranspose2d(channels[i], channels[i + 1], *decorder_args[i]),
-                    activator,
-                )
-                for i in range(len(channels) - 1)
-            ]
+        deconv = construct_body(
+            lambda i: (
+                nn.ConvTranspose2d(channels[i], channels[i + 1], *decorder_args[i]),
+                activator,
+            ),
+            len(channels) - 1,
         )
         self.decoder_deconv = nn.Sequential(
             *deconv, nn.ConvTranspose2d(channels[-1], in_channel, *decorder_args[-1])
@@ -203,9 +191,9 @@ def normalize_vae(t: Tensor, rms: RunningMeanStdTorch) -> Tensor:
 
 def irew_gen_vae(
     vae_loss: VaeLoss = BetaVaeLoss(beta=1.0),
-    preprocess: callable = preprocess_default,
-    state_normalizer: callable = normalize_vae,
-    reward_normalizer: callable = normalize_r_default,
+    preprocess: PreProcessor = preprocess_default,
+    state_normalizer: Normalizer = normalize_vae,
+    reward_normalizer: Normalizer = normalize_r_default,
     **kwargs
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
