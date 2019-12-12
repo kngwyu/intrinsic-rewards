@@ -1,12 +1,12 @@
 from torch import nn, Tensor
 from typing import Callable, List, Optional, Sequence, Tuple
 from rainy import Config
-from rainy.net import make_cnns, NetworkBlock
+from rainy.net import FcBody, LinearHead, make_cnns, NetworkBlock
 from rainy.net.init import Initializer, orthogonal
 from rainy.prelude import Params
 from rainy.utils import Device
-from rainy.utils.rms import RunningMeanStdTorch
 
+from ..prelude import Normalizer, PreProcessor
 from ..unsupervised import UnsupervisedBlock, UnsupervisedIRewGen
 from ..unsupervised import preprocess_default, normalize_r_default, normalize_s_default
 
@@ -42,6 +42,23 @@ class RNDConvBody(NetworkBlock):
         return self.fcs[-1](x)
 
 
+class RNDFcBody(NetworkBlock):
+    def __init__(
+        self,
+        input_dim: int,
+        out_dim: int,
+        units: List[int] = [64, 64],
+    ):
+        super().__init__()
+        self.body = FcBody(input_dim, units=units)
+        self.head = LinearHead(units[-1], out_dim)
+        self.input_dim = input_dim
+        self.output_dim = out_dim
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.head(self.body(x))
+
+
 class RNDUnsupervisedBlock(UnsupervisedBlock):
     def __init__(self, predictor: NetworkBlock, target: NetworkBlock) -> None:
         super().__init__()
@@ -68,13 +85,9 @@ def irew_gen_default(
     params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
     channels: Sequence[int] = (32, 64, 64),
     output_dim: int = 512,
-    preprocess: Callable[[Tensor, Device], Tensor] = preprocess_default,
-    state_normalizer: Callable[
-        [Tensor, RunningMeanStdTorch], Tensor
-    ] = normalize_s_default,
-    reward_normalizer: Callable[
-        [Tensor, RunningMeanStdTorch], Tensor
-    ] = normalize_r_default,
+    preprocess: PreProcessor = preprocess_default,
+    state_normalizer: Normalizer = normalize_s_default,
+    reward_normalizer: Normalizer = normalize_r_default,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
@@ -95,6 +108,33 @@ def irew_gen_default(
             preprocess=preprocess,
             state_normalizer=state_normalizer,
             reward_normalizer=reward_normalizer,
+        )
+
+    return _make_irew_gen
+
+
+def irew_gen_fc(
+    hidden_units: List[int] = [64, 64],
+    output_dim: int = 64,
+    preprocess: PreProcessor = lambda x, _: x,
+    state_normalizer: Normalizer = lambda x, _: x,
+    reward_normalizer: Normalizer = normalize_r_default,
+) -> Callable[[Config, Device], UnsupervisedIRewGen]:
+    def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
+        input_dim = cfg.state_dim[0]
+
+        def net_gen():
+            return RNDFcBody(input_dim, output_dim, hidden_units)
+
+        return UnsupervisedIRewGen(
+            RNDUnsupervisedBlock(net_gen(), net_gen()),
+            cfg.int_discount_factor,
+            cfg.nworkers,
+            device,
+            preprocess=preprocess,
+            state_normalizer=state_normalizer,
+            reward_normalizer=reward_normalizer,
+            ob_rms_shape=(input_dim,)
         )
 
     return _make_irew_gen

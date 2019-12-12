@@ -59,12 +59,16 @@ class UnsupervisedIRewGen(HasStateDict):
         preprocess: PreProcessor,
         state_normalizer: Normalizer,
         reward_normalizer: Normalizer,
+        ob_rms_shape: Optional[Sequence[int]] = None,
     ) -> None:
         super().__init__()
         self.block = intrew_block
         self.block.to(device.unwrapped)
         self.device = device
-        self.ob_rms = RunningMeanStdTorch(self.block.input_dim[1:], device)
+        if ob_rms_shape is None:
+            self.ob_rms = RunningMeanStdTorch(self.block.input_dim[1:], device)
+        else:
+            self.ob_rms = RunningMeanStdTorch(tuple(ob_rms_shape), device)
         self.rff = RewardForwardFilter(gamma, nworkers, device)
         self.rff_rms = RunningMeanStdTorch(shape=(), device=device)
         self.nworkers = nworkers

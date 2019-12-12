@@ -4,6 +4,7 @@ from rainy.net.policy import CategoricalDist, Policy, PolicyDist
 from rainy.net import (
     DummyRnn,
     DQNConv,
+    FcBody,
     LinearHead,
     NetworkBlock,
     RnnBlock,
@@ -13,7 +14,7 @@ from rainy.net import (
 from rainy.prelude import ArrayLike
 from rainy.utils import Device
 from torch import Tensor
-from typing import Callable, Optional, Tuple, Type
+from typing import Callable, List, Optional, Tuple, Type
 
 
 class RNDACNet(SharedACNet):
@@ -73,6 +74,28 @@ def rnd_ac_conv(
         body = DQNConv(
             state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs
         )
+        policy_dist = policy(action_dim, device)
+        rnn_ = rnn(body.output_dim, body.output_dim)
+        ac_head = LinearHead(body.output_dim, policy_dist.input_dim, policy_init())
+        cr_head = LinearHead(body.output_dim, 1)
+        return RNDACNet(
+            body, ac_head, cr_head, policy_dist, recurrent_body=rnn_, device=device
+        )
+
+    return _net  # type: ignore
+
+
+def rnd_ac_fc(
+    policy: Type[PolicyDist] = CategoricalDist,
+    units: List[int] = [64, 64],
+    output_dim: int = 256,
+    rnn: Type[RnnBlock] = DummyRnn,
+    **kwargs
+) -> Callable[[Tuple[int, int, int], int, Device], RNDACNet]:
+    def _net(
+        state_dim: Tuple[int, int, int], action_dim: int, device: Device
+    ) -> RNDACNet:
+        body = FcBody(state_dim[0], units=units, **kwargs)
         policy_dist = policy(action_dim, device)
         rnn_ = rnn(body.output_dim, body.output_dim)
         ac_head = LinearHead(body.output_dim, policy_dist.input_dim, policy_init())
