@@ -6,9 +6,9 @@ from torch.optim import Adam
 from int_rew import rnd
 
 
-def config(game: str = "MontezumaRevenge", rnd_lr: float = 5.0e-5) -> rnd.RNDConfig:
+def config(envname: str = "MontezumaRevenge", rnd_lr: float = 5.0e-5) -> rnd.RNDConfig:
     c = rnd.RNDConfig()
-    c.set_env(lambda: Atari(game, cfg=rnd.atari_config(), frame_stack=False))
+    c.set_env(lambda: Atari(envname, cfg=rnd.atari_config(), frame_stack=False))
     c.set_optimizer(lambda params: Adam(params, lr=rnd_lr), key="rnd_separated")
     c.set_parallel_env(atari_parallel())
     c.max_steps = int(1e8) * 6
@@ -22,7 +22,7 @@ def config(game: str = "MontezumaRevenge", rnd_lr: float = 5.0e-5) -> rnd.RNDCon
     c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)
     c.use_reward_monitor = True
     # eval settings
-    c.eval_env = Atari(game, cfg=rnd.atari_config())
+    c.eval_env = Atari(envname, cfg=rnd.atari_config())
     c.episode_log_freq = 100
     c.eval_freq = None
     c.save_freq = int(1e8)

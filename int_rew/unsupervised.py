@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
-from typing import Callable, Optional, Sequence, Tuple
-from rainy.utils import Device, ExperimentLogger, RunningMeanStdTorch
+from typing import Optional, Sequence, Tuple
+from rainy.utils import Device, RunningMeanStdTorch
 from rainy.utils.state_dict import HasStateDict, TensorStateDict
+
+from .prelude import Normalizer, PreProcessor
 
 
 def preprocess_default(t: Tensor, device: Device) -> Tensor:
@@ -54,15 +56,19 @@ class UnsupervisedIRewGen(HasStateDict):
         gamma: float,
         nworkers: int,
         device: Device,
-        preprocess: Callable[[Tensor, Device], Tensor],
-        state_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor],
-        reward_normalizer: Callable[[Tensor, RunningMeanStdTorch], Tensor],
+        preprocess: PreProcessor,
+        state_normalizer: Normalizer,
+        reward_normalizer: Normalizer,
+        ob_rms_shape: Optional[Sequence[int]] = None,
     ) -> None:
         super().__init__()
         self.block = intrew_block
         self.block.to(device.unwrapped)
         self.device = device
-        self.ob_rms = RunningMeanStdTorch(self.block.input_dim[1:], device)
+        if ob_rms_shape is None:
+            self.ob_rms = RunningMeanStdTorch(self.block.input_dim[1:], device)
+        else:
+            self.ob_rms = RunningMeanStdTorch(tuple(ob_rms_shape), device)
         self.rff = RewardForwardFilter(gamma, nworkers, device)
         self.rff_rms = RunningMeanStdTorch(shape=(), device=device)
         self.nworkers = nworkers

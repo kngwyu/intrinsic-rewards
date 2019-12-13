@@ -8,9 +8,9 @@ from int_rew.rnd import atari_config
 from torch.optim import Adam
 
 
-def config(game: str = "MontezumaRevenge") -> rainy.Config:
+def config(envname: str = "MontezumaRevenge") -> rainy.Config:
     c = rainy.Config()
-    c.set_env(lambda: Atari(game, cfg=atari_config(), frame_stack=False))
+    c.set_env(lambda: Atari(envname, cfg=atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
     c.set_net_fn("actor-critic", rainy.net.actor_critic.ac_conv())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
@@ -29,7 +29,7 @@ def config(game: str = "MontezumaRevenge") -> rainy.Config:
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.use_reward_monitor = True
     # eval settings
-    c.eval_env = Atari(game, cfg=atari_config())
+    c.eval_env = Atari(envname, cfg=atari_config())
     c.episode_log_freq = 100
     c.eval_freq = None
     c.save_freq = None

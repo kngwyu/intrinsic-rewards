@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "087bec1da4b40320fd38d95d0e424b1df0b6af10fa924b8b37409139a8e6ec5b"
+            "sha256": "f726c77b8ec6d706bc2ec0caa0df17169e357d932e47b77fc5d7a67b3b63b9c8"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -44,10 +44,10 @@
         },
         "colorama": {
             "hashes": [
-                "sha256:05eed71e2e327246ad6b38c540c4a3117230b19679b875190486ddd2d721422d",
-                "sha256:f8ac84de7840f5b9c4e3347b3c1eaa50f7e49c2b07596221daec5edaabbd7c48"
+                "sha256:7d73d2a99753107a36ac6b455ee49046802e59d9d076ef8e47b61499fa29afff",
+                "sha256:e96da0d330793e2cb9485e9ddfd918d456036c7149416295932478192f4436a1"
             ],
-            "version": "==0.4.1"
+            "version": "==0.4.3"
         },
         "future": {
             "hashes": [
@@ -221,11 +221,11 @@
         },
         "rainy": {
             "hashes": [
-                "sha256:101eaee1a4f8e2fce006363f6aada85060fd31b69dc2475714d3e1b82a4d46b7",
-                "sha256:e5717d9d636d2d7015b41ba988c9331a54018d1362e3a497518bd8919e4680ae"
+                "sha256:ebffc50b2df12786b69e444ca449d73110b4c47dc01362134612637900110015",
+                "sha256:f8d28673f719e50bd17ed1df87932bed8336668ef06f3ab221ae19e058dbeee4"
             ],
             "index": "pypi",
-            "version": "==0.5.2"
+            "version": "==0.5.3"
         },
         "rogue-gym": {
             "hashes": [
@@ -312,18 +312,18 @@
         },
         "importlib-metadata": {
             "hashes": [
-                "sha256:aa18d7378b00b40847790e7c27e11673d7fed219354109d0e7b9e5b25dc3ad26",
-                "sha256:d5f18a79777f3aa179c145737780282e27b508fc8fd688cb17c7a813e8bd39af"
+                "sha256:073a852570f92da5f744a3472af1b61e28e9f78ccf0c9117658dc32b15de7b45",
+                "sha256:d95141fbfa7ef2ec65cfd945e2af7e5a6ddbd7c8d9a25e66ff3be8e3daf9f60f"
             ],
             "markers": "python_version < '3.8'",
-            "version": "==0.23"
+            "version": "==1.3.0"
         },
         "more-itertools": {
             "hashes": [
-                "sha256:53ff73f186307d9c8ef17a9600309154a6ae27f25579e80af4db8f047ba14bc2",
-                "sha256:a0ea684c39bc4315ba7aae406596ef191fd84f873d2d2751f84d64e81a7a2d45"
+                "sha256:b84b238cce0d9adad5ed87e745778d20a3f8487d0f0cb8b8a586816c7496458d",
+                "sha256:c833ef592a0324bcc6a60e48440da07645063c453880c9477ceb22490aec1564"
             ],
-            "version": "==8.0.0"
+            "version": "==8.0.2"
         },
         "pluggy": {
             "hashes": [
