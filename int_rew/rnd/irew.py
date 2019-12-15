@@ -44,10 +44,7 @@ class RNDConvBody(NetworkBlock):
 
 class RNDFcBody(NetworkBlock):
     def __init__(
-        self,
-        input_dim: int,
-        out_dim: int,
-        units: List[int] = [64, 64],
+        self, input_dim: int, out_dim: int, units: List[int] = [64, 64],
     ):
         super().__init__()
         self.body = FcBody(input_dim, units=units)
@@ -134,7 +131,7 @@ def irew_gen_fc(
             preprocess=preprocess,
             state_normalizer=state_normalizer,
             reward_normalizer=reward_normalizer,
-            ob_rms_shape=(input_dim,)
+            ob_rms_shape=(input_dim,),
         )
 
     return _make_irew_gen

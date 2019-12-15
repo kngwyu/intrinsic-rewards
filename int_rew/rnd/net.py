@@ -66,7 +66,7 @@ def rnd_ac_conv(
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
     output_dim: int = 256,
     rnn: Type[RnnBlock] = DummyRnn,
-    **kwargs
+    **kwargs,
 ) -> Callable[[Tuple[int, int, int], int, Device], RNDACNet]:
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
@@ -90,7 +90,7 @@ def rnd_ac_fc(
     units: List[int] = [64, 64],
     output_dim: int = 256,
     rnn: Type[RnnBlock] = DummyRnn,
-    **kwargs
+    **kwargs,
 ) -> Callable[[Tuple[int, int, int], int, Device], RNDACNet]:
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device

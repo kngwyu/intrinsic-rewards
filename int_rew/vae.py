@@ -194,7 +194,7 @@ def irew_gen_vae(
     preprocess: PreProcessor = preprocess_default,
     state_normalizer: Normalizer = normalize_vae,
     reward_normalizer: Normalizer = normalize_r_default,
-    **kwargs
+    **kwargs,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
