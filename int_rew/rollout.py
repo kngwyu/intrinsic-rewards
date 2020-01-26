@@ -3,7 +3,7 @@ from rainy.prelude import State
 from rainy.utils import Device
 import torch
 from torch import Tensor
-from typing import List
+from typing import List, Optional
 
 
 class IntValueRolloutStorage(RolloutStorage[State]):
@@ -22,8 +22,10 @@ class IntValueRolloutStorage(RolloutStorage[State]):
         self.int_returns = another_device.zeros((nsteps, nworkers))
         self.another_device = another_device
 
-    def push_int_value(self, pval: Tensor) -> None:
-        self.int_values.append(self.another_device.tensor(pval))
+    def push(self, *args, pvalue: Optional[Tensor] = None, **kwargs) -> None:
+        super().push(*args, **kwargs)
+        if pvalue is not None:
+            self.int_values.append(self.another_device.tensor(pvalue))
 
     def reset(self) -> None:
         super().reset()

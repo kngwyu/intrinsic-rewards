@@ -35,8 +35,8 @@ class ConvVae(nn.Module):
         self,
         input_dim: Sequence[int],
         conv_channels: List[int] = [32, 64, 32],
-        encorder_args: List[tuple] = [(8, 4), (4, 2), (3, 1)],
-        decorder_args: List[tuple] = [(3, 1), (4, 2), (8, 4)],
+        encoder_args: List[tuple] = [(8, 4), (4, 2), (3, 1)],
+        decoder_args: List[tuple] = [(3, 1), (4, 2), (8, 4)],
         fc_units: List[int] = [256],
         z_dim: int = 32,
         activator: nn.Module = nn.ReLU(True),
@@ -49,12 +49,12 @@ class ConvVae(nn.Module):
         channels = [in_channel] + conv_channels
         self.encoder_conv = sequential_body(
             lambda i: (
-                nn.Conv2d(channels[i], channels[i + 1], *encorder_args[i]),
+                nn.Conv2d(channels[i], channels[i + 1], *encoder_args[i]),
                 activator,
             ),
             len(channels) - 1,
         )
-        self.cnn_hidden = calc_cnn_hidden(encorder_args, *input_dim[-2:])
+        self.cnn_hidden = calc_cnn_hidden(encoder_args, *input_dim[-2:])
         hidden = self.cnn_hidden[0] * self.cnn_hidden[1] * channels[-1]
         encoder_units = [hidden] + fc_units
         self.encoder_fc = sequential_body(
@@ -71,13 +71,13 @@ class ConvVae(nn.Module):
         channels = list(reversed(conv_channels))
         deconv = construct_body(
             lambda i: (
-                nn.ConvTranspose2d(channels[i], channels[i + 1], *decorder_args[i]),
+                nn.ConvTranspose2d(channels[i], channels[i + 1], *decoder_args[i]),
                 activator,
             ),
             len(channels) - 1,
         )
         self.decoder_deconv = nn.Sequential(
-            *deconv, nn.ConvTranspose2d(channels[-1], in_channel, *decorder_args[-1])
+            *deconv, nn.ConvTranspose2d(channels[-1], in_channel, *decoder_args[-1])
         )
         self.z_dim = z_dim
         self.input_dim = input_dim
@@ -106,7 +106,7 @@ class ConvVae(nn.Module):
 
 
 def bernoulli_recons(a: Tensor, b: Tensor) -> Tensor:
-    return nn.functional.binary_cross_entropy_with_logits(a, b, reduction="sum")
+    return nn.functional.binary_cross_entropy_with_logits(a, b, reduction="none")
 
 
 def categorical_gray(a: Tensor, b: Tensor) -> Tensor:
@@ -115,7 +115,15 @@ def categorical_gray(a: Tensor, b: Tensor) -> Tensor:
     value = (b * float(categ)).round().long()
     logits = a - a.logsumexp(dim=1, keepdim=True)
     log_probs = torch.gather(logits, 1, value)
-    return -log_probs.sum()
+    return -log_probs
+
+
+def categorical_binary(a: Tensor, b: Tensor) -> Tensor:
+    assert a.size(1) == b.size(1)
+    value = b.max(dim=1, keepdim=True)[1]
+    logits = a - a.logsumexp(dim=1, keepdim=True)
+    log_probs = torch.gather(logits, 1, value)
+    return -log_probs
 
 
 def gaussian_recons(a: Tensor, b: Tensor) -> Tensor:
@@ -129,9 +137,11 @@ def _recons_fn(decoder_type: str = "bernoulli") -> Callable[[Tensor, Tensor], Te
         recons_loss = gaussian_recons
     elif decoder_type == "categorical_gray":
         recons_loss = categorical_gray
+    elif decoder_type == "categorical_binary":
+        recons_loss = categorical_binary
     else:
         raise ValueError(
-            "Currently only bernoulli and gaussian are supported as decoder head"
+            f"{decoder_type} is not supported"
         )
     return recons_loss
 

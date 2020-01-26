@@ -3,9 +3,10 @@ import numpy as np
 from rainy.agents import PPOAgent
 from rainy.lib import mpi
 from rainy.lib.rollout import RolloutSampler
-from rainy.prelude import Array, State
+from rainy.prelude import Action, Array, State
 import torch
 from torch import Tensor
+from typing import Tuple
 from .config import RNDConfig
 from .rollout import RNDRolloutSampler
 from ..rollout import IntValueRolloutStorage
@@ -53,24 +54,21 @@ class RNDAgent(PPOAgent):
             color="magenta",
         )
 
-    def _one_step(self, states: Array[State]) -> Array[State]:
-        with torch.no_grad():
-            policy, value, pvalue, rnns = self.net(*self._network_in(states))
-        next_states, rewards, done, info = self.penv.step(
-            policy.action().squeeze().cpu().numpy()
-        )
-        self.episode_length += 1
-        self.rewards += rewards
-        self.report_reward(done, info)
-        self.storage.push(
-            next_states, rewards, done, rnn_state=rnns, policy=policy, value=value
-        )
-        self.storage.push_int_value(pvalue)
-        return next_states
+    @torch.no_grad()
+    def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
+        policy, value, pvalue, rnns = self.net(*self._network_in(states))
+        actions = policy.action().squeeze().cpu().numpy()
+        return actions, dict(rnn_states=rnns, policy=policy, value=value, pvalue=pvalue)
 
     @staticmethod
     def _rnd_value_loss(prediction: Tensor, target: Tensor) -> Tensor:
         return 0.5 * (prediction - target.to(prediction.device)).pow(2).mean()
+
+    def _reset(self, initial_states: Array[State]) -> None:
+        self.storage.set_initial_state(initial_states, self.rnn_init())
+        if self.config.initialize_stats is not None:
+            self.initialize_stats(self.config.initialize_stats)
+            self.storage.set_initial_state(initial_states, self.rnn_init())
 
     def initialize_stats(self, t: int) -> None:
         for i in range(self.config.nsteps * t):
@@ -122,15 +120,9 @@ class RNDAgent(PPOAgent):
         p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
         self.network_log(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)
 
-    def nstep(self, states: Array[State]) -> Array[State]:
-        if self.update_steps == 0 and self.config.initialize_stats is not None:
-            self.initialize_stats(self.config.initialize_stats)
-            states = self.storage.states[0]
-        for _ in range(self.config.nsteps):
-            states = self._one_step(states)
-
+    def train(self, last_states: Array[State]) -> None:
         with torch.no_grad():
-            next_value, next_int_value = self.net.values(*self._network_in(states))
+            next_value, next_int_value = self.net.values(*self._network_in(last_states))
 
         cfg = self.config
         self.storage.calc_gae_returns(next_value, cfg.discount_factor, cfg.gae_lambda)
@@ -138,7 +130,6 @@ class RNDAgent(PPOAgent):
             self.storage,
             self.penv,
             cfg.ppo_minibatch_size,
-            rnn=self.net.recurrent_body,
         )
 
         int_rewards, stats = self.irew_gen.gen_rewards(normal_sampler.states)
@@ -167,4 +158,3 @@ class RNDAgent(PPOAgent):
         self.lr_cooler.lr_decay(self.optimizer)
         self.clip_eps = self.clip_cooler()
         self.storage.reset()
-        return states

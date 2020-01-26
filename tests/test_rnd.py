@@ -47,7 +47,7 @@ def test_storage_and_irew() -> None:
     penv = DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6)
     NSTEPS = 4
     ACTION_DIM = 3
-    NWORKERS = penv.num_envs
+    NWORKERS = penv.nworkers
     states = penv.reset()
     storage = IntValueRolloutStorage(
         NSTEPS, NWORKERS, Device(), 0.99, Device(use_cpu=True)
@@ -59,8 +59,7 @@ def test_storage_and_irew() -> None:
         value = torch.randn(NWORKERS)
         pvalue = torch.randn(NWORKERS)
         policy = policy_head(torch.randn(NWORKERS).view(-1, 1))
-        storage.push(state, reward, done, value=value, policy=policy)
-        storage.push_int_value(pvalue)
+        storage.push(state, reward, done, value=value, policy=policy, pvalue=pvalue)
     rewards = torch.randn(NWORKERS * NSTEPS)
     storage.calc_int_returns(torch.randn(NWORKERS), rewards, gamma=0.99, lambda_=0.95)
     batch = storage.batch_states(penv)

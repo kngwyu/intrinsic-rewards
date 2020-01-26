@@ -3,7 +3,7 @@ from rainy.net.actor_critic import policy_init
 from rainy.net.policy import CategoricalDist, Policy, PolicyDist
 from rainy.net import (
     DummyRnn,
-    DQNConv,
+    CNNBody,
     FcBody,
     LinearHead,
     NetworkBlock,
@@ -14,7 +14,7 @@ from rainy.net import (
 from rainy.prelude import ArrayLike
 from rainy.utils import Device
 from torch import Tensor
-from typing import Callable, List, Optional, Tuple, Type
+from typing import Callable, List, Optional, Sequence, Tuple, Type
 
 
 class RNDACNet(SharedACNet):
@@ -63,16 +63,21 @@ class RNDACNet(SharedACNet):
 
 def rnd_ac_conv(
     policy: Type[PolicyDist] = CategoricalDist,
-    hidden_channels: Tuple[int, int, int] = (32, 64, 32),
-    output_dim: int = 256,
+    cnn_params: Sequence[tuple] = [(8, 4), (4, 2), (3, 1)],
+    hidden_channels: Sequence[int] = (32, 64, 32),
+    feature_dim: int = 256,
     rnn: Type[RnnBlock] = DummyRnn,
     **kwargs,
 ) -> Callable[[Tuple[int, int, int], int, Device], RNDACNet]:
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> RNDACNet:
-        body = DQNConv(
-            state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs
+        body = CNNBody(
+            state_dim,
+            cnn_params=cnn_params,
+            hidden_channels=hidden_channels,
+            output_dim=feature_dim,
+            **kwargs,
         )
         policy_dist = policy(action_dim, device)
         rnn_ = rnn(body.output_dim, body.output_dim)
