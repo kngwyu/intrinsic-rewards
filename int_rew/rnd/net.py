@@ -4,7 +4,7 @@ from rainy.net.policy import CategoricalDist, Policy, PolicyDist
 from rainy.net import (
     DummyRnn,
     CNNBody,
-    FcBody,
+    FCBody,
     LinearHead,
     NetworkBlock,
     RnnBlock,
@@ -100,7 +100,7 @@ def rnd_ac_fc(
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> RNDACNet:
-        body = FcBody(state_dim[0], units=units, **kwargs)
+        body = FCBody(state_dim[0], units=units, **kwargs)
         policy_dist = policy(action_dim, device)
         rnn_ = rnn(body.output_dim, body.output_dim)
         ac_head = LinearHead(body.output_dim, policy_dist.input_dim, policy_init())

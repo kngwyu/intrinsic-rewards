@@ -1,7 +1,7 @@
 from torch import nn, Tensor
 from typing import Callable, List, Optional, Sequence, Tuple
 from rainy import Config
-from rainy.net import FcBody, LinearHead, make_cnns, NetworkBlock
+from rainy.net import FCBody, LinearHead, make_cnns, NetworkBlock
 from rainy.net.init import Initializer, orthogonal
 from rainy.prelude import Params
 from rainy.utils import Device
@@ -42,12 +42,12 @@ class RNDConvBody(NetworkBlock):
         return self.fcs[-1](x)
 
 
-class RNDFcBody(NetworkBlock):
+class RNDFCBody(NetworkBlock):
     def __init__(
         self, input_dim: int, out_dim: int, units: List[int] = [64, 64],
     ):
         super().__init__()
-        self.body = FcBody(input_dim, units=units)
+        self.body = FCBody(input_dim, units=units)
         self.head = LinearHead(units[-1], out_dim)
         self.input_dim = input_dim
         self.output_dim = out_dim
@@ -121,7 +121,7 @@ def irew_gen_fc(
         input_dim = cfg.state_dim[0]
 
         def net_gen():
-            return RNDFcBody(input_dim, output_dim, hidden_units)
+            return RNDFCBody(input_dim, output_dim, hidden_units)
 
         return UnsupervisedIRewGen(
             RNDUnsupervisedBlock(net_gen(), net_gen()),
