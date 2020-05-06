@@ -16,7 +16,7 @@ def config(envname: str = "MontezumaRevenge") -> rnd.RNDConfig:
     # ppo params
     c.nworkers = 64
     c.nsteps = 128
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)

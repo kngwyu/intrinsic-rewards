@@ -1,6 +1,6 @@
 from int_rew import rnd
 import os
-from rainy.utils import cli
+import rainy
 from rogue_gym.envs import (
     DungeonType,
     ImageSetting,
@@ -31,6 +31,7 @@ def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
 EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 
+@rainy.main(rnd.RNDAgent, script_path=os.path.realpath(__file__))
 def config() -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.set_parallel_env(
@@ -66,7 +67,7 @@ def config() -> rnd.RNDConfig:
     )
     c.nworkers = 32
     c.nsteps = 125
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)
@@ -74,4 +75,4 @@ def config() -> rnd.RNDConfig:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rnd.RNDAgent, script_path=os.path.realpath(__file__))
+    main()

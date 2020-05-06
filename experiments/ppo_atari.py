@@ -2,19 +2,23 @@
 """
 import os
 import rainy
-import rainy.utils.cli as cli
 from rainy.envs import Atari, atari_parallel
 from int_rew.rnd import atari_config
 from torch.optim import Adam
 
 
-def config(envname: str = "MontezumaRevenge") -> rainy.Config:
+@rainy.main(rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))
+def main(
+    envname: str = "MontezumaRevenge",
+    max_steps: int = int(1e8) * 6,
+    nworkers: int = 128,
+) -> rainy.Config:
     c = rainy.Config()
     c.set_env(lambda: Atari(envname, cfg=atari_config(), frame_stack=False))
     c.set_parallel_env(atari_parallel())
-    c.set_net_fn("actor-critic", rainy.net.actor_critic.ac_conv())
+    c.set_net_fn("actor-critic", rainy.net.actor_critic.conv_shared())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
-    c.max_steps = int(1e8) * 6
+    c.max_steps = max_steps
     c.grad_clip = 1.0
     # ppo params
     c.discount_factor = 0.999
@@ -22,9 +26,9 @@ def config(envname: str = "MontezumaRevenge") -> rainy.Config:
     c.ppo_epochs = 4
     c.ppo_clip = 0.1
     c.use_gae = True
-    c.nworkers = 128
+    c.nworkers = nworkers
     c.nsteps = 128
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.use_reward_monitor = True
@@ -37,4 +41,4 @@ def config(envname: str = "MontezumaRevenge") -> rainy.Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))
+    main()

@@ -1,6 +1,5 @@
 import rainy
 import os
-from rainy.utils import cli
 from rogue_gym.envs import (
     DungeonType,
     ImageSetting,
@@ -18,8 +17,8 @@ def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
         "width": 32,
         "height": 16,
         "hide_dungeon": True,
-        "dungeon": {"style": "rogue", "room_num_x": 2, "room_num_y": 2,},
-        "enemies": {"enemies": [],},
+        "dungeon": {"style": "rogue", "room_num_x": 2, "room_num_y": 2},
+        "enemies": {"enemies": []},
     }
     if isinstance(seed, int):
         common["seed"] = seed
@@ -31,7 +30,8 @@ def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
 EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 
-def config() -> rainy.Config:
+@rainy.main(rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))
+def main() -> rainy.Config:
     c = rainy.Config()
     c.set_parallel_env(
         lambda _env_gen, _num_w: ParallelRogueEnvExt(
@@ -55,15 +55,15 @@ def config() -> rainy.Config:
     CNN_PARAM = [(8, 1), (4, 1), (3, 1)]
     c.set_net_fn(
         "actor-critic",
-        rainy.net.actor_critic.ac_conv(kernel_and_strides=CNN_PARAM, output_dim=256,),
+        rainy.net.actor_critic.conv_shared(cnn_params=CNN_PARAM, output_dim=256),
     )
     c.nworkers = 32
     c.nsteps = 125
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     return c
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))
+    main()
