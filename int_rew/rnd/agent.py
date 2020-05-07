@@ -90,7 +90,7 @@ class RNDAgent(PPOAgent):
                     batch.states, batch.rnn_init, batch.masks
                 )
                 policy.set_action(batch.actions)
-                policy_loss = self._policy_loss(
+                policy_loss = self._proximal_policy_loss(
                     policy, batch.advantages, batch.old_log_probs
                 )
                 value_loss = self._rnd_value_loss(value, batch.returns)
