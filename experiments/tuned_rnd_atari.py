@@ -13,7 +13,7 @@ def config(
     rnd_lr: float = 5.0e-5,
 ) -> rnd.RNDConfig:
     c = rnd.RNDConfig()
-    c.set_env(lambda: Atari(envname, cfg=rnd.atari_config(), frame_stack=False))
+    c.set_env(lambda: Atari(envname, cfg="rnd", frame_stack=False))
     c.set_optimizer(lambda params: Adam(params, lr=rnd_lr), key="rnd_separated")
     c.set_parallel_env(atari_parallel())
     c.max_steps = max_steps
@@ -27,7 +27,7 @@ def config(
     c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)
     c.use_reward_monitor = True
     # eval settings
-    c.eval_env = Atari(envname, cfg=rnd.atari_config())
+    c.eval_env = Atari(envname, cfg="rnd")
     c.episode_log_freq = 100
     c.eval_freq = max_steps // 10
     c.save_freq = max_steps // 5
