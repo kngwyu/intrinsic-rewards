@@ -30,6 +30,7 @@ def config(
     c.eval_env = Atari(envname, cfg="rnd")
     c.episode_log_freq = 100
     c.eval_freq = max_steps // 10
+    c.eval_times = 12
     c.save_freq = max_steps // 5
     return c
 

@@ -34,7 +34,8 @@ def main(
     # eval settings
     c.eval_env = Atari(envname, cfg="rnd")
     c.episode_log_freq = 100
-    c.eval_freq = None
+    c.eval_times = 12
+    c.eval_freq = c.max_steps // 10
     c.save_freq = None
     return c
 
