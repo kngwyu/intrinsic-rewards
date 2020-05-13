@@ -140,9 +140,7 @@ def _recons_fn(decoder_type: str = "bernoulli") -> Callable[[Tensor, Tensor], Te
     elif decoder_type == "categorical_binary":
         recons_loss = categorical_binary
     else:
-        raise ValueError(
-            f"{decoder_type} is not supported"
-        )
+        raise ValueError(f"{decoder_type} is not supported")
     return recons_loss
 
 

@@ -127,9 +127,7 @@ class RNDAgent(PPOAgent):
         cfg = self.config
         self.storage.calc_gae_returns(next_value, cfg.discount_factor, cfg.gae_lambda)
         normal_sampler = RolloutSampler(
-            self.storage,
-            self.penv,
-            cfg.ppo_minibatch_size,
+            self.storage, self.penv, cfg.ppo_minibatch_size,
         )
 
         int_rewards, stats = self.irew_gen.gen_rewards(normal_sampler.states)

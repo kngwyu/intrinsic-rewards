@@ -29,7 +29,7 @@ class TunedRNDAgent(RNDAgent):
         mpi.setup_models(self.net, self.irew_gen.block)
         self.optimizer = mpi.setup_optimizer(config.optimizer(self.net.parameters()))
         self.rnd_optimizer = mpi.setup_optimizer(
-            config.optimizer(self.irew_gen.block.parameters(), key="rnd_separated")
+            config.optimizer(self.irew_gen.block.parameters(), key="rnd")
         )
         if not self.config.normalize_int_reward:
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
@@ -72,15 +72,16 @@ class TunedRNDAgent(RNDAgent):
                 )
                 iv += int_value_loss.item()
 
-        for batch in sampler:
-            self.rnd_optimizer.zero_grad()
-            aux_loss = self.irew_gen.aux_loss(batch.states, batch.targets, 1.0)
-            aux_loss.backward()
-            mpi.clip_and_step(
-                self.irew_gen.block.parameters(),
-                self.config.grad_clip,
-                self.rnd_optimizer,
-            )
+                self.rnd_optimizer.zero_grad()
+                aux_loss = self.irew_gen.aux_loss(
+                    batch.states, batch.targets, self.config.auxloss_use_ratio
+                )
+                aux_loss.backward()
+                mpi.clip_and_step(
+                    self.irew_gen.block.parameters(),
+                    self.config.grad_clip,
+                    self.rnd_optimizer,
+                )
 
         p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
         self.network_log(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)

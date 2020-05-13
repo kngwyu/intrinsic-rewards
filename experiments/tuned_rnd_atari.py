@@ -6,15 +6,16 @@ from int_rew import rnd
 
 
 @rainy.main(rnd.RNDAgent, script_path=os.path.realpath(__file__))
-def config(
+def main(
     envname: str = "MontezumaRevenge",
-    max_steps: int = int(1e8) * 6,
-    nworkers: int = 128,
+    max_steps: int = int(1e8),
+    nworkers: int = 64,
     rnd_lr: float = 5.0e-5,
 ) -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.set_env(lambda: Atari(envname, cfg="rnd", frame_stack=False))
-    c.set_optimizer(lambda params: Adam(params, lr=rnd_lr), key="rnd_separated")
+    c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1e-6))
+    c.set_optimizer(lambda params: Adam(params, lr=rnd_lr, eps=1e-6), key="rnd")
     c.set_parallel_env(atari_parallel())
     c.max_steps = max_steps
     c.grad_clip = 1.0
