@@ -18,8 +18,8 @@ def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
         "width": 32,
         "height": 16,
         "hide_dungeon": True,
-        "dungeon": {"style": "rogue", "room_num_x": 2, "room_num_y": 2,},
-        "enemies": {"enemies": [],},
+        "dungeon": {"style": "rogue", "room_num_x": 2, "room_num_y": 2},
+        "enemies": {"enemies": []},
     }
     if isinstance(seed, int):
         common["seed"] = seed
@@ -32,7 +32,7 @@ EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 
 @rainy.main(rnd.RNDAgent, script_path=os.path.realpath(__file__))
-def config() -> rnd.RNDConfig:
+def main() -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.set_parallel_env(
         lambda _env_gen, _num_w: ParallelRogueEnvExt(
@@ -59,9 +59,9 @@ def config() -> rnd.RNDConfig:
         rnd.net.rnd_ac_conv(kernel_and_strides=CNN_PARAM, output_dim=256,),
     )
     c._int_reward_gen = rnd.irew.irew_gen_default(
-        params=CNN_PARAM,
-        channels=(32, 64, 32),
-        output_dim=256,
+        cnn_params=CNN_PARAM,
+        hidden_channels=(32, 64, 32),
+        feature_dim=256,
         preprocess=lambda t, device: t.to(device.unwrapped),
         state_normalizer=lambda t, rms: t.reshape(-1, 1, *t.shape[-2:]),
     )

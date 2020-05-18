@@ -16,7 +16,7 @@ def config() -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.nworkers = 4
     c.nsteps = 4
-    c.set_env(lambda: Atari("Venture", cfg=rnd.atari_config(), frame_stack=False))
+    c.set_env(lambda: Atari("Venture", cfg="rnd", frame_stack=False))
     c.set_parallel_env(atari_parallel())
     return c
 

@@ -79,23 +79,23 @@ class RNDUnsupervisedBlock(UnsupervisedBlock):
 
 
 def irew_gen_default(
-    params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
-    channels: Sequence[int] = (32, 64, 64),
-    output_dim: int = 512,
+    cnn_params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
+    hidden_channels: Sequence[int] = (32, 64, 64),
+    feature_dim: int = 512,
     preprocess: PreProcessor = preprocess_default,
     state_normalizer: Normalizer = normalize_s_default,
     reward_normalizer: Normalizer = normalize_r_default,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
-        cnns, hidden = make_cnns(input_dim, params, channels)
-        target = RNDConvBody(cnns, [nn.Linear(hidden, output_dim)], input_dim)
+        cnns, hidden = make_cnns(input_dim, cnn_params, hidden_channels)
+        target = RNDConvBody(cnns, [nn.Linear(hidden, feature_dim)], input_dim)
         predictor_fc = [
-            nn.Linear(hidden, output_dim),
-            nn.Linear(output_dim, output_dim),
-            nn.Linear(output_dim, output_dim),
+            nn.Linear(hidden, feature_dim),
+            nn.Linear(feature_dim, feature_dim),
+            nn.Linear(feature_dim, feature_dim),
         ]
-        cnns, _ = make_cnns(input_dim, params, channels)
+        cnns, _ = make_cnns(input_dim, cnn_params, hidden_channels)
         predictor = RNDConvBody(cnns, predictor_fc, input_dim)
         return UnsupervisedIRewGen(
             RNDUnsupervisedBlock(target, predictor),
