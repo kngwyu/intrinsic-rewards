@@ -10,7 +10,7 @@ def main(
     envname: str = "MontezumaRevenge",
     max_steps: int = int(1e8),
     nworkers: int = 64,
-    rnd_lr: float = 5.0e-5,
+    rnd_lr: float = 1.0e-5,
 ) -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.set_env(lambda: Atari(envname, cfg="rnd", frame_stack=False))
