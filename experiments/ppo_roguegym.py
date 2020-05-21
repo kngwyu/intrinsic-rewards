@@ -7,7 +7,7 @@ from rogue_gym.envs import (
     ParallelRogueEnv,
     StatusFlag,
 )
-from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
+from rogue_gym_patch import ParallelRogueEnvExt, RogueEnvExt
 from torch.optim import Adam
 from typing import Tuple, Union
 
@@ -51,11 +51,11 @@ def main() -> rainy.Config:
             image_setting=EXPAND,
         )
     )
-    c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
+    c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-6))
     CNN_PARAM = [(8, 1), (4, 1), (3, 1)]
     c.set_net_fn(
         "actor-critic",
-        rainy.net.actor_critic.conv_shared(cnn_params=CNN_PARAM, output_dim=256),
+        rainy.net.actor_critic.conv_shared(cnn_params=CNN_PARAM, feature_dim=256),
     )
     c.nworkers = 32
     c.nsteps = 125
