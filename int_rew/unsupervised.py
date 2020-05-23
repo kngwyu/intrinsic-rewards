@@ -70,6 +70,7 @@ class UnsupervisedIRewGen(HasStateDict):
         else:
             self.ob_rms = RunningMeanStdTorch(tuple(ob_rms_shape), device)
         self.rff = RewardForwardFilter(gamma, nworkers, device)
+        self.rff_rms = RunningMeanStdTorch(shape=(), device=device)
         self.nworkers = nworkers
         self.cached_target = device.ones(0)
         self._preprocess = preprocess
