@@ -1,5 +1,5 @@
 from torch import nn, Tensor
-from typing import Callable, List, Optional, Sequence, Tuple
+from typing import Callable, List, Optional, Sequence, Type, Tuple
 from rainy import Config
 from rainy.net import FCBody, LinearHead, make_cnns, NetworkBlock
 from rainy.net.init import Initializer, orthogonal
@@ -68,7 +68,7 @@ class RNDUnsupervisedBlock(UnsupervisedBlock):
         return (t - p).pow(2), t
 
     def loss(self, states: Tensor, target: Optional[Tensor]) -> Tensor:
-        return (target - self.predictor(states)).pow(2).mean()
+        return (target - self.predictor(states)).pow(2)
 
     @property
     def input_dim(self) -> Sequence[int]:
@@ -85,6 +85,7 @@ def irew_gen_default(
     preprocess: PreProcessor = preprocess_default,
     state_normalizer: Normalizer = normalize_s_default,
     reward_normalizer: Normalizer = normalize_r_default,
+    cls: Type[UnsupervisedIRewGen] = UnsupervisedIRewGen,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
@@ -97,7 +98,7 @@ def irew_gen_default(
         ]
         cnns, _ = make_cnns(input_dim, cnn_params, hidden_channels)
         predictor = RNDConvBody(cnns, predictor_fc, input_dim)
-        return UnsupervisedIRewGen(
+        return cls(
             RNDUnsupervisedBlock(target, predictor),
             cfg.int_discount_factor,
             cfg.nworkers,
@@ -116,6 +117,7 @@ def irew_gen_fc(
     preprocess: PreProcessor = lambda x, _: x,
     state_normalizer: Normalizer = lambda x, _: x,
     reward_normalizer: Normalizer = normalize_r_default,
+    cls: Type[UnsupervisedIRewGen] = UnsupervisedIRewGen,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = cfg.state_dim[0]
@@ -123,7 +125,7 @@ def irew_gen_fc(
         def net_gen():
             return RNDFCBody(input_dim, output_dim, hidden_units)
 
-        return UnsupervisedIRewGen(
+        return cls(
             RNDUnsupervisedBlock(net_gen(), net_gen()),
             cfg.int_discount_factor,
             cfg.nworkers,

@@ -30,7 +30,6 @@ def main(
     c.value_loss_weight = 1.0
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
-    c.use_reward_monitor = True
     # eval settings
     c.eval_env = Atari(envname, cfg="rnd")
     c.episode_log_freq = 100

@@ -182,7 +182,7 @@ class VaeUnsupervisedBlock(UnsupervisedBlock):
     def loss(self, states: Tensor, target: Optional[Tensor]) -> Tensor:
         batch_size = states.size(0)
         out = self.vae(states)
-        recons_loss = self.loss_fn.recons_loss(out.x, states).div_(batch_size).mean()
+        recons_loss = self.loss_fn.recons_loss(out.x, states).div_(batch_size)
         latent_loss = self.loss_fn.latent_loss(out.logvar, out.mu).div_(batch_size)
         return recons_loss + latent_loss
 
