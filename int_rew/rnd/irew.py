@@ -86,6 +86,7 @@ def irew_gen_default(
     state_normalizer: Normalizer = normalize_s_default,
     reward_normalizer: Normalizer = normalize_r_default,
     cls: Type[UnsupervisedIRewGen] = UnsupervisedIRewGen,
+    **kwargs,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
@@ -106,6 +107,7 @@ def irew_gen_default(
             preprocess=preprocess,
             state_normalizer=state_normalizer,
             reward_normalizer=reward_normalizer,
+            **kwargs,
         )
 
     return _make_irew_gen
@@ -118,6 +120,7 @@ def irew_gen_fc(
     state_normalizer: Normalizer = lambda x, _: x,
     reward_normalizer: Normalizer = normalize_r_default,
     cls: Type[UnsupervisedIRewGen] = UnsupervisedIRewGen,
+    **kwargs,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = cfg.state_dim[0]
@@ -134,6 +137,7 @@ def irew_gen_fc(
             state_normalizer=state_normalizer,
             reward_normalizer=reward_normalizer,
             ob_rms_shape=(input_dim,),
+            **kwargs,
         )
 
     return _make_irew_gen
