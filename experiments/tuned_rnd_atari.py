@@ -8,7 +8,7 @@ from int_rew import rnd
 @rainy.main(rnd.RNDAgent, script_path=os.path.realpath(__file__))
 def main(
     envname: str = "MontezumaRevenge",
-    max_steps: int = int(1e8),
+    max_steps: int = int(1e8) * 4,
     nworkers: int = 64,
     rnd_lr: float = 1.0e-5,
 ) -> rnd.RNDConfig:
@@ -29,7 +29,7 @@ def main(
     # eval settings
     c.eval_env = Atari(envname, cfg="rnd")
     c.episode_log_freq = 100
-    c.eval_freq = max_steps // 10
+    c.eval_freq = int(1e7)
     c.eval_times = 12
     c.save_freq = max_steps // 5
     return c
