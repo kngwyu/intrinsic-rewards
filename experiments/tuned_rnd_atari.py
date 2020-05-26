@@ -14,8 +14,8 @@ def main(
 ) -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.set_env(lambda: Atari(envname, cfg="rnd", frame_stack=False))
-    c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1e-6))
-    c.set_optimizer(lambda params: Adam(params, lr=rnd_lr, eps=1e-6), key="rnd")
+    c.set_optimizer(lambda params: Adam(params, lr=1.0e-4))
+    c.set_optimizer(lambda params: Adam(params, lr=rnd_lr), key="rnd")
     c.set_parallel_env(atari_parallel())
     c.max_steps = max_steps
     c.grad_clip = 1.0
