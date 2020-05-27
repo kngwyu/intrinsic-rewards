@@ -62,7 +62,7 @@ class RNDAgent(PPOAgent):
 
     @staticmethod
     def _rnd_value_loss(prediction: Tensor, target: Tensor) -> Tensor:
-        return 0.5 * (prediction - target.to(prediction.device)).pow(2).mean()
+        return (prediction - target.to(prediction.device)).pow_(2.0).mul_(0.5).mean()
 
     def _reset(self, initial_states: Array[State]) -> None:
         self.storage.set_initial_state(initial_states, self.rnn_init())
