@@ -93,6 +93,14 @@ class UnsupervisedIRewGen(HasStateDict):
     def preprocess(self, t: Tensor) -> Tensor:
         return self._preprocess(t, self.device)
 
+    def eval_gen_rewards(self, state: Tensor) -> Tensor:
+        s = self.preprocess(state)
+        with torch.no_grad():
+            normalized_s = self.state_normalizer(s, self.ob_rms)
+            error, self.cached_target = self.block.rewards(normalized_s)
+        rewards = error.mean(-1)
+        return self.reward_normalizer(rewards, self.rff_rms)
+
     def gen_rewards(self, state: Tensor) -> Tuple[Tensor, dict]:
         s = self.preprocess(state)
         self.ob_rms.update(s.double().view(-1, *self.ob_rms.mean.shape))
