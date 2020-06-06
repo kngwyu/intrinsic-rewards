@@ -1,8 +1,10 @@
 import os
-import rainy.utils.cli as cli
-from rainy.envs import Atari, atari_parallel
-from int_rew import rnd, vae
+
 from torch.optim import Adam
+
+import rainy.utils.cli as cli
+from int_rew import rnd, vae
+from rainy.envs import Atari, atari_parallel
 
 
 def config(envname: str = "MontezumaRevenge") -> rnd.RNDConfig:

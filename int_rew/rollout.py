@@ -1,9 +1,11 @@
+from typing import List, Optional
+
+import torch
+from torch import Tensor
+
 from rainy.lib.rollout import RolloutStorage
 from rainy.prelude import State
 from rainy.utils import Device
-import torch
-from torch import Tensor
-from typing import List, Optional
 
 
 class IntValueRolloutStorage(RolloutStorage[State]):

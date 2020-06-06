@@ -1,16 +1,13 @@
-from int_rew import rnd
 import os
-import rainy
-from rogue_gym.envs import (
-    DungeonType,
-    ImageSetting,
-    RogueEnv,
-    ParallelRogueEnv,
-    StatusFlag,
-)
-from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
-from torch.optim import Adam
 from typing import Tuple, Union
+
+from torch.optim import Adam
+
+import rainy
+from int_rew import rnd
+from rogue_gym.envs import (DungeonType, ImageSetting, ParallelRogueEnv,
+                            RogueEnv, StatusFlag)
+from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
 
 
 def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:

@@ -1,15 +1,18 @@
 from itertools import chain
+from typing import Tuple
+
 import numpy as np
+import torch
+from torch import Tensor
+
 from rainy.agents import PPOAgent
 from rainy.lib import mpi
 from rainy.lib.rollout import RolloutSampler
 from rainy.prelude import Action, Array, State
-import torch
-from torch import Tensor
-from typing import Tuple
+
+from ..rollout import IntValueRolloutStorage
 from .config import RNDConfig
 from .rollout import RNDRolloutSampler
-from ..rollout import IntValueRolloutStorage
 
 
 class RNDAgent(PPOAgent):

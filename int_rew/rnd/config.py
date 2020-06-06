@@ -1,6 +1,8 @@
-import rainy
 from torch.optim import Adam
-from .irew import irew_gen_default, UnsupervisedIRewGen
+
+import rainy
+
+from .irew import UnsupervisedIRewGen, irew_gen_default
 from .net import rnd_ac_conv
 
 

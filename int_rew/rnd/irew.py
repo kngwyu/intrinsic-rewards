@@ -1,14 +1,17 @@
-from torch import nn, Tensor
-from typing import Callable, List, Optional, Sequence, Type, Tuple
+from typing import Callable, List, Optional, Sequence, Tuple, Type
+
+from torch import Tensor, nn
+
 from rainy import Config
-from rainy.net import FCBody, LinearHead, make_cnns, NetworkBlock
+from rainy.net import FCBody, LinearHead, NetworkBlock, make_cnns
 from rainy.net.init import Initializer, orthogonal
 from rainy.prelude import Params
 from rainy.utils import Device
 
 from ..prelude import Normalizer, PreProcessor
-from ..unsupervised import UnsupervisedBlock, UnsupervisedIRewGen
-from ..unsupervised import preprocess_default, normalize_r_default, normalize_s_default
+from ..unsupervised import (UnsupervisedBlock, UnsupervisedIRewGen,
+                            normalize_r_default, normalize_s_default,
+                            preprocess_default)
 
 
 class RNDConvBody(NetworkBlock):

@@ -3,22 +3,21 @@ Based on https://github.com/kngwyu/pytorch-autoencoders/
 """
 from abc import ABC, abstractmethod
 from itertools import chain
-import torch
-from torch import nn, Size, Tensor
 from typing import Callable, List, NamedTuple, Optional, Sequence, Tuple
+
+import numpy as np
+import torch
+from torch import Size, Tensor, nn
+
 from rainy import Config
-from rainy.net import calc_cnn_hidden, Initializer
+from rainy.net import Initializer, calc_cnn_hidden
 from rainy.net.init import orthogonal
 from rainy.utils import Device
 from rainy.utils.rms import RunningMeanStdTorch
 
 from .prelude import Normalizer, PreProcessor
-from .unsupervised import (
-    UnsupervisedBlock,
-    UnsupervisedIRewGen,
-    normalize_r_default,
-    preprocess_default,
-)
+from .unsupervised import (UnsupervisedBlock, UnsupervisedIRewGen,
+                           normalize_r_default, preprocess_default)
 from .utils import construct_body, sequential_body
 
 flatten = chain.from_iterable
@@ -30,7 +29,56 @@ class VaeOutPut(NamedTuple):
     logvar: Tensor
 
 
-class ConvVae(nn.Module):
+class Vae(ABC):
+    input_dim: Sequence[int]
+
+    @abstractmethod
+    def encode(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        pass
+
+    @abstractmethod
+    def decode(self, z: Tensor, old_shape: Size = None) -> Tensor:
+        pass
+
+    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return eps.mul(std).add_(mu)
+
+    def forward(self, x: Tensor) -> VaeOutPut:
+        mu, logvar = self.encode(x)
+        z = self.reparameterize(mu, logvar)
+        return VaeOutPut(self.decode(z, old_shape=x.shape), mu, logvar)
+
+
+class FcVae(nn.Module, Vae):
+     def __init__(
+        self,
+        input_dim: tuple,
+        fc_dim: int = 400,
+        z_dim: int = 20,
+        noptions: int = 4,
+        device: Device = Device(),
+        decoder_kind: DecoderKind = DecoderKind.BERNOULLI,
+        init: net.Initializer = net.Initializer(),
+    ) -> None:
+        super().__init__()
+        self.device = device
+        x_dim = np.prod(input_dim)
+        self.noptions = noptions
+        self.encoder = nn.Sequential(
+            init(nn.Linear(x_dim, fc_dim)),
+            nn.ReLU(inplace=True),
+            init(nn.Linear(fc_dim, z_dim)),
+        )
+        self.decoder = nn.Sequential(
+            init(nn.Linear(z_dim, fc_dim)),
+            nn.ReLU(inplace=True),
+            decoder_kind.wrap(nn.Linear(fc_dim, x_dim), init),
+        )
+        self.to(device.unwrapped)
+
+class ConvVae(nn.Module, Vae):
     def __init__(
         self,
         input_dim: Sequence[int],
@@ -93,16 +141,6 @@ class ConvVae(nn.Module):
         h3 = self.decoder_fc(z)
         h3 = h3.view(h3.size(0), -1, *self.cnn_hidden)
         return self.decoder_deconv(h3)
-
-    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return eps.mul(std).add_(mu)
-
-    def forward(self, x: Tensor) -> VaeOutPut:
-        mu, logvar = self.encode(x)
-        z = self.reparameterize(mu, logvar)
-        return VaeOutPut(self.decode(z, old_shape=x.shape), mu, logvar)
 
 
 def bernoulli_recons(a: Tensor, b: Tensor) -> Tensor:
@@ -184,6 +222,7 @@ class VaeUnsupervisedBlock(UnsupervisedBlock):
         out = self.vae(states)
         recons_loss = self.loss_fn.recons_loss(out.x, states).div_(batch_size)
         latent_loss = self.loss_fn.latent_loss(out.logvar, out.mu).div_(batch_size)
+        print(recons_loss.shape, latent_loss.shape)
         return recons_loss + latent_loss
 
     @property

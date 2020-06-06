@@ -1,15 +1,16 @@
-from numpy.testing import assert_array_almost_equal
 from pathlib import Path
+
+import torch
+from numpy.testing import assert_array_almost_equal
+
 import pytest
+from int_rew import rnd, vae
+from int_rew.rollout import IntValueRolloutStorage
 from rainy.envs import Atari, DummyParallelEnv, atari_parallel
 from rainy.envs.testing import DummyEnv
 from rainy.lib.rollout import RolloutSampler
 from rainy.net.policy import CategoricalDist
 from rainy.utils import Device
-import torch
-
-from int_rew import rnd, vae
-from int_rew.rollout import IntValueRolloutStorage
 
 
 def config() -> rnd.RNDConfig:

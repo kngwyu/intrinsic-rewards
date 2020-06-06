@@ -1,16 +1,18 @@
-from gym import Env
+from typing import Any, Iterable, Optional, Tuple
+
 import numpy as np
+from gym import Env
 from numpy import ndarray
+
+from rogue_gym.envs.parallel import ParallelRogueEnv
+from rogue_gym.envs.rogue_env import PlayerState, RogueEnv
+from rogue_gym.envs.wrappers import check_rogue_env
 
 try:
     from rainy.envs import EnvExt, EnvSpec, ParallelEnv, PEnvTransition
     from rainy.prelude import Array
 except ImportError:
     raise ImportError("To use rogue_gym.rainy_impls, install rainy first.")
-from rogue_gym.envs.parallel import ParallelRogueEnv
-from rogue_gym.envs.rogue_env import PlayerState, RogueEnv
-from rogue_gym.envs.wrappers import check_rogue_env
-from typing import Any, Iterable, Optional, Tuple
 
 ACTION_DIM = len(RogueEnv.ACTIONS)
 

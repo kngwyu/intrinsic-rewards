@@ -1,8 +1,10 @@
 import os
-import rainy
-from rainy.envs import Atari, atari_parallel
+
 from torch.optim import Adam
+
+import rainy
 from int_rew import rnd
+from rainy.envs import Atari, atari_parallel
 
 
 @rainy.main(rnd.RNDAgent, script_path=os.path.realpath(__file__))

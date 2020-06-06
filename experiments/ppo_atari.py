@@ -1,9 +1,11 @@
 """PPO Atari
 """
 import os
+
+from torch.optim import Adam
+
 import rainy
 from rainy.envs import Atari, atari_parallel
-from torch.optim import Adam
 
 
 @rainy.main(rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))

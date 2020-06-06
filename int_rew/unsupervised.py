@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
-import torch
-from torch import nn, Tensor
 from typing import Optional, Sequence, Tuple
+
+import torch
+from torch import Tensor, nn
+
 from rainy.utils import Device, RunningMeanStdTorch
 from rainy.utils.state_dict import HasStateDict, TensorStateDict
 

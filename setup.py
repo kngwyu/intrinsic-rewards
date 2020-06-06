@@ -1,7 +1,7 @@
 import io
 import re
-from setuptools import setup, find_packages
 
+from setuptools import find_packages, setup
 
 with io.open("int_rew/__init__.py", "rt", encoding="utf8") as f:
     version = re.search(r"__version__ = \"(.*?)\"", f.read()).group(1)

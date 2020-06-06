@@ -1,20 +1,14 @@
 import copy
+from typing import Callable, List, Optional, Sequence, Tuple, Type
+
+from torch import Tensor
+
+from rainy.net import (CNNBody, DummyRnn, FCBody, LinearHead, NetworkBlock,
+                       RnnBlock, RnnState, SharedACNet)
 from rainy.net.actor_critic import policy_init
 from rainy.net.policy import CategoricalDist, Policy, PolicyDist
-from rainy.net import (
-    DummyRnn,
-    CNNBody,
-    FCBody,
-    LinearHead,
-    NetworkBlock,
-    RnnBlock,
-    RnnState,
-    SharedACNet,
-)
 from rainy.prelude import ArrayLike
 from rainy.utils import Device
-from torch import Tensor
-from typing import Callable, List, Optional, Sequence, Tuple, Type
 
 
 class RNDACNet(SharedACNet):

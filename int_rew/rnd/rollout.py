@@ -1,9 +1,11 @@
+from typing import NamedTuple, Optional
+
+from torch import Tensor
+
 from rainy.lib.rollout import RolloutSampler
 from rainy.net import RnnState
 from rainy.prelude import Array
 from rainy.utils import normalize_
-from torch import Tensor
-from typing import NamedTuple, Optional
 
 from ..rollout import IntValueRolloutStorage
 

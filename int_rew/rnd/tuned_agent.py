@@ -1,9 +1,10 @@
 from rainy.agents import PPOAgent
 from rainy.lib import mpi
+
+from ..rollout import IntValueRolloutStorage
 from .agent import RNDAgent
 from .config import RNDConfig
 from .rollout import RNDRolloutSampler
-from ..rollout import IntValueRolloutStorage
 
 
 class TunedRNDAgent(RNDAgent):

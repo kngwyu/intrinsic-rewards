@@ -1,5 +1,6 @@
-from torch import nn
 from typing import Callable, List, Tuple
+
+from torch import nn
 
 
 def construct_body(
