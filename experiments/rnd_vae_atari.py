@@ -2,19 +2,20 @@ import os
 
 from torch.optim import Adam
 
-import rainy.utils.cli as cli
 from int_rew import rnd, vae
+import rainy
 from rainy.envs import Atari, atari_parallel
 
 
-def config(envname: str = "MontezumaRevenge") -> rnd.RNDConfig:
+@rainy.main(rnd.RNDAgent, script_path=os.path.realpath(__file__))
+def main(envname: str = "MontezumaRevenge") -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.set_env(lambda: Atari(envname, cfg="rnd", frame_stack=False))
     c.set_parallel_env(atari_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=1.0e-4, eps=1.0e-8))
     c.max_steps = int(1e8) * 6
     c.grad_clip = 1.0
-    c._int_reward_gen = vae.irew_gen_vae()
+    c._int_reward_gen = vae.irew_gen_cnn_vae()
     # ppo params
     c.nworkers = 64
     c.nsteps = 128
@@ -31,4 +32,4 @@ def config(envname: str = "MontezumaRevenge") -> rnd.RNDConfig:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rnd.RNDAgent, script_path=os.path.realpath(__file__))
+    main()

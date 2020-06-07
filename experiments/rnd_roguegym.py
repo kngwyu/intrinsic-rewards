@@ -5,8 +5,13 @@ from torch.optim import Adam
 
 import rainy
 from int_rew import rnd
-from rogue_gym.envs import (DungeonType, ImageSetting, ParallelRogueEnv,
-                            RogueEnv, StatusFlag)
+from rogue_gym.envs import (
+    DungeonType,
+    ImageSetting,
+    ParallelRogueEnv,
+    RogueEnv,
+    StatusFlag,
+)
 from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
 
 

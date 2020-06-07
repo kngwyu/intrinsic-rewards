@@ -23,7 +23,7 @@ def config() -> rnd.RNDConfig:
 
 
 @pytest.mark.parametrize(
-    "irew_gen", [rnd.irew_gen_default(), vae.irew_gen_vae()],
+    "irew_gen", [rnd.irew_gen_default(), vae.irew_gen_cnn_vae()],
 )
 def test_save_and_load(irew_gen) -> None:
     c = config()

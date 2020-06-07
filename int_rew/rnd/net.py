@@ -3,8 +3,16 @@ from typing import Callable, List, Optional, Sequence, Tuple, Type
 
 from torch import Tensor
 
-from rainy.net import (CNNBody, DummyRnn, FCBody, LinearHead, NetworkBlock,
-                       RnnBlock, RnnState, SharedACNet)
+from rainy.net import (
+    CNNBody,
+    DummyRnn,
+    FCBody,
+    LinearHead,
+    NetworkBlock,
+    RnnBlock,
+    RnnState,
+    SharedACNet,
+)
 from rainy.net.actor_critic import policy_init
 from rainy.net.policy import CategoricalDist, Policy, PolicyDist
 from rainy.prelude import ArrayLike

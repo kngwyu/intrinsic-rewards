@@ -9,9 +9,13 @@ from rainy.prelude import Params
 from rainy.utils import Device
 
 from ..prelude import Normalizer, PreProcessor
-from ..unsupervised import (UnsupervisedBlock, UnsupervisedIRewGen,
-                            normalize_r_default, normalize_s_default,
-                            preprocess_default)
+from ..unsupervised import (
+    UnsupervisedBlock,
+    UnsupervisedIRewGen,
+    normalize_r_default,
+    normalize_s_default,
+    preprocess_default,
+)
 
 
 class RNDConvBody(NetworkBlock):
