@@ -27,15 +27,15 @@ class RNDAgent(PPOAgent):
             color="magenta",
         )
         self.net = config.net("actor-critic")
-        another_device = config.device.split()
+        self.another_device = config.device.split()
         self.storage = IntValueRolloutStorage(
             config.nsteps,
             config.nworkers,
             config.device,
             config.discount_factor,
-            another_device=another_device,
+            another_device=self.another_device,
         )
-        self.irew_gen = config.int_reward_gen(another_device)
+        self.irew_gen = config.int_reward_gen(self.another_device)
         self.optimizer = config.optimizer(
             chain(self.net.parameters(), self.irew_gen.block.parameters())
         )
@@ -71,19 +71,19 @@ class RNDAgent(PPOAgent):
         self.storage.set_initial_state(initial_states, self.rnn_init())
         if self.config.initialize_stats is not None:
             self.initialize_stats(self.config.initialize_stats)
-            self.storage.set_initial_state(initial_states, self.rnn_init())
 
     def initialize_stats(self, t: int) -> None:
+        states = []
         for i in range(self.config.nsteps * t):
             actions = np.random.randint(self.penv.action_dim, size=self.config.nworkers)
-            states, rewards, done, _ = self.penv.step(actions)
-            self.storage.push(states, rewards, done)
-            if (i + 1) % self.config.nsteps == 0:
-                s = self.irew_gen.preprocess(self.storage.batch_states(self.penv))
+            s, _, _, _ = self.penv.step(actions)
+            states.append(self.another_device.tensor(self.penv.extract(s)))
+            if len(states) == self.config.nsteps:
+                processed = self.irew_gen.preprocess(torch.cat(states))
                 self.irew_gen.ob_rms.update(
-                    s.double().view(-1, *self.penv.state_dim[1:])
+                    processed.double().view(-1, *self.penv.state_dim[1:])
                 )
-                self.storage.reset()
+                states.clear()
 
     def _update_policy(self, sampler: RNDRolloutSampler) -> None:
         p, v, iv, e = (0.0,) * 4

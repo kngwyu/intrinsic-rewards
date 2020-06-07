@@ -11,15 +11,15 @@ class TunedRNDAgent(RNDAgent):
     def __init__(self, config: RNDConfig) -> None:
         PPOAgent.__init__(self, config)
         self.net = config.net("actor-critic")
-        another_device = config.device.split()
+        self.another_device = config.device.split()
         self.storage = IntValueRolloutStorage(
             config.nsteps,
             config.nworkers,
             config.device,
             config.discount_factor,
-            another_device=another_device,
+            another_device=self.another_device,
         )
-        self.irew_gen = config.int_reward_gen(another_device)
+        self.irew_gen = config.int_reward_gen(self.another_device)
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]["lr"])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
@@ -50,7 +50,7 @@ class TunedRNDAgent(RNDAgent):
                     batch.states, batch.rnn_init, batch.masks
                 )
                 policy.set_action(batch.actions)
-                policy_loss = self._policy_loss(
+                policy_loss = self._proximal_policy_loss(
                     policy, batch.advantages, batch.old_log_probs
                 )
                 value_loss = self._rnd_value_loss(value, batch.returns)

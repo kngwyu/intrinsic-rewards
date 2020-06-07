@@ -123,7 +123,7 @@ def irew_gen_default(
 def irew_gen_fc(
     hidden_units: List[int] = [64, 64],
     output_dim: int = 64,
-    preprocess: PreProcessor = lambda x, _: x,
+    preprocess: PreProcessor = lambda x, d: x.to(d.unwrapped),
     state_normalizer: Normalizer = lambda x, _: x,
     reward_normalizer: Normalizer = normalize_r_default,
     cls: Type[UnsupervisedIRewGen] = UnsupervisedIRewGen,
