@@ -73,16 +73,17 @@ class TunedRNDAgent(RNDAgent):
                 )
                 iv += int_value_loss.item()
 
-                self.rnd_optimizer.zero_grad()
-                aux_loss = self.irew_gen.aux_loss(
-                    batch.states, batch.targets, self.config.auxloss_use_ratio
-                )
-                aux_loss.backward()
-                mpi.clip_and_step(
-                    self.irew_gen.block.parameters(),
-                    self.config.grad_clip,
-                    self.rnd_optimizer,
-                )
+        for batch in sampler:
+            self.rnd_optimizer.zero_grad()
+            aux_loss = self.irew_gen.aux_loss(
+                batch.states, batch.targets, self.config.auxloss_use_ratio
+            )
+            aux_loss.backward()
+            mpi.clip_and_step(
+                self.irew_gen.block.parameters(),
+                self.config.grad_clip,
+                self.rnd_optimizer,
+            )
 
         p, v, iv, e = (x / self.num_updates for x in (p, v, iv, e))
         self.network_log(policy_loss=p, value_loss=v, int_value_loss=iv, entropy_loss=e)
