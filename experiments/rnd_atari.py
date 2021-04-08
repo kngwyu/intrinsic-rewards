@@ -1,30 +1,36 @@
 import os
-import rainy.utils.cli as cli
-from rainy.envs import Atari, atari_parallel
+
+import rainy
 from int_rew import rnd
+from rainy.envs import Atari, atari_parallel
 
 
-def config(envname: str = "MontezumaRevenge") -> rnd.RNDConfig:
+@rainy.main(rnd.RNDAgent, script_path=os.path.realpath(__file__))
+def main(
+    envname: str = "MontezumaRevenge",
+    max_steps: int = int(1e8) * 6,
+    nworkers: int = 128,
+) -> rnd.RNDConfig:
     c = rnd.RNDConfig()
-    c.set_env(lambda: Atari(envname, cfg=rnd.atari_config(), frame_stack=False))
+    c.set_env(lambda: Atari(envname, cfg="rnd", frame_stack=False))
     c.set_parallel_env(atari_parallel())
-    c.max_steps = int(1e8) * 6
+    c.max_steps = max_steps
     c.grad_clip = 1.0
     # ppo params
-    c.nworkers = 64
+    c.nworkers = nworkers
     c.nsteps = 128
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)
-    c.use_reward_monitor = True
     # eval settings
-    c.eval_env = Atari(envname, cfg=rnd.atari_config())
+    c.eval_env = Atari(envname, cfg="rnd")
     c.episode_log_freq = 1000
-    c.eval_freq = None
-    c.save_freq = int(1e8)
+    c.eval_freq = max_steps // 10
+    c.eval_times = 12
+    c.save_freq = max_steps // 5
     return c
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rnd.RNDAgent, script_path=os.path.realpath(__file__))
+    main()

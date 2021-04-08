@@ -1,28 +1,29 @@
-from numpy.testing import assert_array_almost_equal
 from pathlib import Path
+
+import torch
+from numpy.testing import assert_array_almost_equal
+
 import pytest
+from int_rew import rnd, vae
+from int_rew.rollout import IntValueRolloutStorage
 from rainy.envs import Atari, DummyParallelEnv, atari_parallel
 from rainy.envs.testing import DummyEnv
 from rainy.lib.rollout import RolloutSampler
 from rainy.net.policy import CategoricalDist
 from rainy.utils import Device
-import torch
-
-from int_rew import rnd, vae
-from int_rew.rollout import IntValueRolloutStorage
 
 
 def config() -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.nworkers = 4
     c.nsteps = 4
-    c.set_env(lambda: Atari("Venture", cfg=rnd.atari_config(), frame_stack=False))
+    c.set_env(lambda: Atari("Venture", cfg="rnd", frame_stack=False))
     c.set_parallel_env(atari_parallel())
     return c
 
 
 @pytest.mark.parametrize(
-    "irew_gen", [rnd.irew_gen_default(), vae.irew_gen_vae()],
+    "irew_gen", [rnd.irew_gen_default(), vae.irew_gen_cnn_vae()],
 )
 def test_save_and_load(irew_gen) -> None:
     c = config()

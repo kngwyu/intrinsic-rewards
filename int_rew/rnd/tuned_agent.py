@@ -1,24 +1,25 @@
 from rainy.agents import PPOAgent
 from rainy.lib import mpi
+
+from ..rollout import IntValueRolloutStorage
 from .agent import RNDAgent
 from .config import RNDConfig
 from .rollout import RNDRolloutSampler
-from ..rollout import IntValueRolloutStorage
 
 
 class TunedRNDAgent(RNDAgent):
     def __init__(self, config: RNDConfig) -> None:
         PPOAgent.__init__(self, config)
         self.net = config.net("actor-critic")
-        another_device = config.device.split()
+        self.another_device = config.device.split()
         self.storage = IntValueRolloutStorage(
             config.nsteps,
             config.nworkers,
             config.device,
             config.discount_factor,
-            another_device=another_device,
+            another_device=self.another_device,
         )
-        self.irew_gen = config.int_reward_gen(another_device)
+        self.irew_gen = config.int_reward_gen(self.another_device)
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]["lr"])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
@@ -29,7 +30,7 @@ class TunedRNDAgent(RNDAgent):
         mpi.setup_models(self.net, self.irew_gen.block)
         self.optimizer = mpi.setup_optimizer(config.optimizer(self.net.parameters()))
         self.rnd_optimizer = mpi.setup_optimizer(
-            config.optimizer(self.irew_gen.block.parameters(), key="rnd_separated")
+            config.optimizer(self.irew_gen.block.parameters(), key="rnd")
         )
         if not self.config.normalize_int_reward:
             self.irew_gen.reward_normalizer = lambda intrew, _rms: intrew
@@ -49,7 +50,7 @@ class TunedRNDAgent(RNDAgent):
                     batch.states, batch.rnn_init, batch.masks
                 )
                 policy.set_action(batch.actions)
-                policy_loss = self._policy_loss(
+                policy_loss = self._proximal_policy_loss(
                     policy, batch.advantages, batch.old_log_probs
                 )
                 value_loss = self._rnd_value_loss(value, batch.returns)
@@ -74,7 +75,9 @@ class TunedRNDAgent(RNDAgent):
 
         for batch in sampler:
             self.rnd_optimizer.zero_grad()
-            aux_loss = self.irew_gen.aux_loss(batch.states, batch.targets, 1.0)
+            aux_loss = self.irew_gen.aux_loss(
+                batch.states, batch.targets, self.config.auxloss_use_ratio
+            )
             aux_loss.backward()
             mpi.clip_and_step(
                 self.irew_gen.block.parameters(),

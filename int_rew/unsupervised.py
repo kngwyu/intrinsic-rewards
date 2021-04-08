@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
-import torch
-from torch import nn, Tensor
 from typing import Optional, Sequence, Tuple
+
+import torch
+from torch import Tensor, nn
+
 from rainy.utils import Device, RunningMeanStdTorch
 from rainy.utils.state_dict import HasStateDict, TensorStateDict
 
@@ -93,6 +95,14 @@ class UnsupervisedIRewGen(HasStateDict):
     def preprocess(self, t: Tensor) -> Tensor:
         return self._preprocess(t, self.device)
 
+    def eval_gen_rewards(self, state: Tensor) -> Tensor:
+        s = self.preprocess(state)
+        with torch.no_grad():
+            normalized_s = self.state_normalizer(s, self.ob_rms)
+            error, self.cached_target = self.block.rewards(normalized_s)
+        rewards = error.mean(-1)
+        return self.reward_normalizer(rewards, self.rff_rms)
+
     def gen_rewards(self, state: Tensor) -> Tuple[Tensor, dict]:
         s = self.preprocess(state)
         self.ob_rms.update(s.double().view(-1, *self.ob_rms.mean.shape))
@@ -119,4 +129,5 @@ class UnsupervisedIRewGen(HasStateDict):
         mask = torch.empty(state.size(0)).uniform_() < use_ratio
         s = self.preprocess(state[mask])
         normalized_s = self.state_normalizer(s, self.ob_rms)
-        return self.block.loss(normalized_s, None if target is None else target[mask])
+        target = None if target is None else target[mask]
+        return self.block.loss(normalized_s, target).mean()

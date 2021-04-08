@@ -1,14 +1,21 @@
-from torch import nn, Tensor
-from typing import Callable, List, Optional, Sequence, Tuple
+from typing import Callable, List, Optional, Sequence, Tuple, Type
+
+from torch import Tensor, nn
+
 from rainy import Config
-from rainy.net import FCBody, LinearHead, make_cnns, NetworkBlock
+from rainy.net import FCBody, LinearHead, NetworkBlock, make_cnns
 from rainy.net.init import Initializer, orthogonal
 from rainy.prelude import Params
 from rainy.utils import Device
 
 from ..prelude import Normalizer, PreProcessor
-from ..unsupervised import UnsupervisedBlock, UnsupervisedIRewGen
-from ..unsupervised import preprocess_default, normalize_r_default, normalize_s_default
+from ..unsupervised import (
+    UnsupervisedBlock,
+    UnsupervisedIRewGen,
+    normalize_r_default,
+    normalize_s_default,
+    preprocess_default,
+)
 
 
 class RNDConvBody(NetworkBlock):
@@ -68,7 +75,7 @@ class RNDUnsupervisedBlock(UnsupervisedBlock):
         return (t - p).pow(2), t
 
     def loss(self, states: Tensor, target: Optional[Tensor]) -> Tensor:
-        return (target - self.predictor(states)).pow(2).mean()
+        return (target - self.predictor(states)).pow(2)
 
     @property
     def input_dim(self) -> Sequence[int]:
@@ -79,25 +86,27 @@ class RNDUnsupervisedBlock(UnsupervisedBlock):
 
 
 def irew_gen_default(
-    params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
-    channels: Sequence[int] = (32, 64, 64),
-    output_dim: int = 512,
+    cnn_params: Sequence[tuple] = ((8, 4), (4, 2), (3, 1)),
+    hidden_channels: Sequence[int] = (32, 64, 64),
+    feature_dim: int = 512,
     preprocess: PreProcessor = preprocess_default,
     state_normalizer: Normalizer = normalize_s_default,
     reward_normalizer: Normalizer = normalize_r_default,
+    cls: Type[UnsupervisedIRewGen] = UnsupervisedIRewGen,
+    **kwargs,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = 1, *cfg.state_dim[1:]
-        cnns, hidden = make_cnns(input_dim, params, channels)
-        target = RNDConvBody(cnns, [nn.Linear(hidden, output_dim)], input_dim)
+        cnns, hidden = make_cnns(input_dim, cnn_params, hidden_channels)
+        target = RNDConvBody(cnns, [nn.Linear(hidden, feature_dim)], input_dim)
         predictor_fc = [
-            nn.Linear(hidden, output_dim),
-            nn.Linear(output_dim, output_dim),
-            nn.Linear(output_dim, output_dim),
+            nn.Linear(hidden, feature_dim),
+            nn.Linear(feature_dim, feature_dim),
+            nn.Linear(feature_dim, feature_dim),
         ]
-        cnns, _ = make_cnns(input_dim, params, channels)
+        cnns, _ = make_cnns(input_dim, cnn_params, hidden_channels)
         predictor = RNDConvBody(cnns, predictor_fc, input_dim)
-        return UnsupervisedIRewGen(
+        return cls(
             RNDUnsupervisedBlock(target, predictor),
             cfg.int_discount_factor,
             cfg.nworkers,
@@ -105,6 +114,7 @@ def irew_gen_default(
             preprocess=preprocess,
             state_normalizer=state_normalizer,
             reward_normalizer=reward_normalizer,
+            **kwargs,
         )
 
     return _make_irew_gen
@@ -113,9 +123,11 @@ def irew_gen_default(
 def irew_gen_fc(
     hidden_units: List[int] = [64, 64],
     output_dim: int = 64,
-    preprocess: PreProcessor = lambda x, _: x,
+    preprocess: PreProcessor = lambda x, d: x.to(d.unwrapped),
     state_normalizer: Normalizer = lambda x, _: x,
     reward_normalizer: Normalizer = normalize_r_default,
+    cls: Type[UnsupervisedIRewGen] = UnsupervisedIRewGen,
+    **kwargs,
 ) -> Callable[[Config, Device], UnsupervisedIRewGen]:
     def _make_irew_gen(cfg: Config, device: Device) -> UnsupervisedIRewGen:
         input_dim = cfg.state_dim[0]
@@ -123,7 +135,7 @@ def irew_gen_fc(
         def net_gen():
             return RNDFCBody(input_dim, output_dim, hidden_units)
 
-        return UnsupervisedIRewGen(
+        return cls(
             RNDUnsupervisedBlock(net_gen(), net_gen()),
             cfg.int_discount_factor,
             cfg.nworkers,
@@ -132,6 +144,7 @@ def irew_gen_fc(
             state_normalizer=state_normalizer,
             reward_normalizer=reward_normalizer,
             ob_rms_shape=(input_dim,),
+            **kwargs,
         )
 
     return _make_irew_gen

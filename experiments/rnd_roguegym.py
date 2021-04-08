@@ -1,16 +1,18 @@
-from int_rew import rnd
 import os
-from rainy.utils import cli
+from typing import Tuple, Union
+
+from torch.optim import Adam
+
+import rainy
+from int_rew import rnd
 from rogue_gym.envs import (
     DungeonType,
     ImageSetting,
-    RogueEnv,
     ParallelRogueEnv,
+    RogueEnv,
     StatusFlag,
 )
 from rogue_gym.rainy_impls import ParallelRogueEnvExt, RogueEnvExt
-from torch.optim import Adam
-from typing import Tuple, Union
 
 
 def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
@@ -18,8 +20,8 @@ def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
         "width": 32,
         "height": 16,
         "hide_dungeon": True,
-        "dungeon": {"style": "rogue", "room_num_x": 2, "room_num_y": 2,},
-        "enemies": {"enemies": [],},
+        "dungeon": {"style": "rogue", "room_num_x": 2, "room_num_y": 2},
+        "enemies": {"enemies": []},
     }
     if isinstance(seed, int):
         common["seed"] = seed
@@ -31,7 +33,8 @@ def rogue_config(seed: Union[int, Tuple[int, int]]) -> dict:
 EXPAND = ImageSetting(dungeon=DungeonType.GRAY, status=StatusFlag.EMPTY)
 
 
-def config() -> rnd.RNDConfig:
+@rainy.main(rnd.RNDAgent, script_path=os.path.realpath(__file__))
+def main() -> rnd.RNDConfig:
     c = rnd.RNDConfig()
     c.set_parallel_env(
         lambda _env_gen, _num_w: ParallelRogueEnvExt(
@@ -58,15 +61,15 @@ def config() -> rnd.RNDConfig:
         rnd.net.rnd_ac_conv(kernel_and_strides=CNN_PARAM, output_dim=256,),
     )
     c._int_reward_gen = rnd.irew.irew_gen_default(
-        params=CNN_PARAM,
-        channels=(32, 64, 32),
-        output_dim=256,
+        cnn_params=CNN_PARAM,
+        hidden_channels=(32, 64, 32),
+        feature_dim=256,
         preprocess=lambda t, device: t.to(device.unwrapped),
         state_normalizer=lambda t, rms: t.reshape(-1, 1, *t.shape[-2:]),
     )
     c.nworkers = 32
     c.nsteps = 125
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = (c.nworkers * c.nsteps) // 4
     c.auxloss_use_ratio = min(1.0, 32.0 / c.nworkers)
@@ -74,4 +77,4 @@ def config() -> rnd.RNDConfig:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rnd.RNDAgent, script_path=os.path.realpath(__file__))
+    main()

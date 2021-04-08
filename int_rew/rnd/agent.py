@@ -1,15 +1,18 @@
 from itertools import chain
+from typing import Tuple
+
 import numpy as np
+import torch
+from torch import Tensor
+
 from rainy.agents import PPOAgent
 from rainy.lib import mpi
 from rainy.lib.rollout import RolloutSampler
 from rainy.prelude import Action, Array, State
-import torch
-from torch import Tensor
-from typing import Tuple
+
+from ..rollout import IntValueRolloutStorage
 from .config import RNDConfig
 from .rollout import RNDRolloutSampler
-from ..rollout import IntValueRolloutStorage
 
 
 class RNDAgent(PPOAgent):
@@ -24,15 +27,15 @@ class RNDAgent(PPOAgent):
             color="magenta",
         )
         self.net = config.net("actor-critic")
-        another_device = config.device.split()
+        self.another_device = config.device.split()
         self.storage = IntValueRolloutStorage(
             config.nsteps,
             config.nworkers,
             config.device,
             config.discount_factor,
-            another_device=another_device,
+            another_device=self.another_device,
         )
-        self.irew_gen = config.int_reward_gen(another_device)
+        self.irew_gen = config.int_reward_gen(self.another_device)
         self.optimizer = config.optimizer(
             chain(self.net.parameters(), self.irew_gen.block.parameters())
         )
@@ -62,25 +65,25 @@ class RNDAgent(PPOAgent):
 
     @staticmethod
     def _rnd_value_loss(prediction: Tensor, target: Tensor) -> Tensor:
-        return 0.5 * (prediction - target.to(prediction.device)).pow(2).mean()
+        return (prediction - target.to(prediction.device)).pow_(2.0).mul_(0.5).mean()
 
     def _reset(self, initial_states: Array[State]) -> None:
         self.storage.set_initial_state(initial_states, self.rnn_init())
         if self.config.initialize_stats is not None:
             self.initialize_stats(self.config.initialize_stats)
-            self.storage.set_initial_state(initial_states, self.rnn_init())
 
     def initialize_stats(self, t: int) -> None:
+        states = []
         for i in range(self.config.nsteps * t):
             actions = np.random.randint(self.penv.action_dim, size=self.config.nworkers)
-            states, rewards, done, _ = self.penv.step(actions)
-            self.storage.push(states, rewards, done)
-            if (i + 1) % self.config.nsteps == 0:
-                s = self.irew_gen.preprocess(self.storage.batch_states(self.penv))
+            s, _, _, _ = self.penv.step(actions)
+            states.append(self.another_device.tensor(self.penv.extract(s)))
+            if len(states) == self.config.nsteps:
+                processed = self.irew_gen.preprocess(torch.cat(states))
                 self.irew_gen.ob_rms.update(
-                    s.double().view(-1, *self.penv.state_dim[1:])
+                    processed.double().view(-1, *self.penv.state_dim[1:])
                 )
-                self.storage.reset()
+                states.clear()
 
     def _update_policy(self, sampler: RNDRolloutSampler) -> None:
         p, v, iv, e = (0.0,) * 4
@@ -127,9 +130,7 @@ class RNDAgent(PPOAgent):
         cfg = self.config
         self.storage.calc_gae_returns(next_value, cfg.discount_factor, cfg.gae_lambda)
         normal_sampler = RolloutSampler(
-            self.storage,
-            self.penv,
-            cfg.ppo_minibatch_size,
+            self.storage, self.penv, cfg.ppo_minibatch_size,
         )
 
         int_rewards, stats = self.irew_gen.gen_rewards(normal_sampler.states)

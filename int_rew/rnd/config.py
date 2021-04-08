@@ -1,6 +1,8 @@
-import rainy
 from torch.optim import Adam
-from .irew import irew_gen_default, UnsupervisedIRewGen
+
+import rainy
+
+from .irew import UnsupervisedIRewGen, irew_gen_default
 from .net import rnd_ac_conv
 
 
@@ -25,7 +27,7 @@ class RNDConfig(rainy.Config):
         self.initialize_stats = 50
         self.normalize_int_reward = True
         self.set_optimizer(lambda params: Adam(params, lr=1.0e-4))
-        self.set_optimizer(lambda params: Adam(params, lr=5.0e-5), key="rnd_separated")
+        self.set_optimizer(lambda params: Adam(params, lr=5.0e-5), key="rnd")
         self._int_reward_gen = irew_gen_default()
 
     def int_reward_gen(self, device: rainy.utils.Device) -> UnsupervisedIRewGen:
